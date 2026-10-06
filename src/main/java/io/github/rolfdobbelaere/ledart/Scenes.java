@@ -25,7 +25,8 @@ public final class Scenes {
             "gemini-sparkle", Scenes::geminiSparkle,
             "matrix-rain", Scenes::matrixRain,
             "google-spinner", Scenes::googleSpinner,
-            "devoxx-gemini", Scenes::devoxxGemini);
+            "devoxx-gemini", Scenes::devoxxGemini,
+            "dev-runner", DevRunner::frame);
 
     private Scenes() {}
 

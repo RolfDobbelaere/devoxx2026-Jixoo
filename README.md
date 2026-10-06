@@ -10,6 +10,14 @@ blue → violet → rose gradient.
 |---|---|---|---|---|
 | ![](output/preview/google-dots-led.gif) | ![](output/preview/gemini-sparkle-led.gif) | ![](output/preview/google-spinner-led.gif) | ![](output/preview/matrix-rain-led.gif) | ![](output/preview/devoxx-gemini-led.gif) |
 
+### dev-runner: a side-scroller loop
+
+A developer runs over a curved Google-colored planet, stomps a red and a green bug, bounces through a spinning
+Google "G" coin, and passes a keyboard and mouse, while a smiling Google Cloud floats above like Lakitu.
+The world scrolls exactly 90 px in 30 frames and every object repeats every 90 px, so the loop is seamless.
+
+![](output/preview/dev-runner-led.gif)
+
 *Previews are upscaled to show the LED look. The real 64×64 files to upload are in [`output/`](output).*
 
 ## How it works
@@ -39,6 +47,13 @@ Then, in this repo:
 
 ```bash
 mvn -q compile exec:java -Dexec.args="scenes"
+```
+
+Render one scene, or a contact sheet of all its frames:
+
+```bash
+mvn -q compile exec:java -Dexec.args="scene dev-runner"
+mvn -q compile exec:java -Dexec.args="sheet dev-runner"
 ```
 
 ## Generate with Nano Banana

@@ -14,6 +14,8 @@ import java.util.List;
  *
  * <pre>
  *   scenes                       render all procedural Google/Gemini scenes (no API key needed)
+ *   scene dev-runner             render a single scene
+ *   sheet dev-runner             write a contact sheet of all frames of a scene
  *   ai "a robot" [name] [--raw]  generate with Nano Banana, convert to 64x64 + shimmer animation
  *   models                       list image-capable Gemini models for your key
  * </pre>
@@ -40,6 +42,9 @@ public final class App {
                 boolean raw = a.contains("--raw"); // raw = don't snap colors to the Google palette
                 generateAi(subject, name, !raw);
             }
+            case "scene" -> save(a.get(1), Scenes.render(a.get(1), DELAY_MS));
+            case "sheet" -> LedPreview.writeSheet(Scenes.render(a.get(1), DELAY_MS),
+                    OUT.resolve("preview").resolve(a.get(1) + "-sheet.png"));
             case "models" -> new NanoBanana().printImageModels();
             default -> System.err.println("Unknown command '" + cmd + "'. Use: scenes | ai \"<subject>\" [name] [--raw] | models");
         }

@@ -46,6 +46,19 @@ public final class LedPreview {
         }
     }
 
+    /** All frames side by side in a grid of 6 columns, handy to check an animation frame by frame. */
+    public static void writeSheet(PixooAnimation animation, Path target) throws IOException {
+        int cols = 6, size = 64 * CELL, gap = 8;
+        int rows = (animation.frameCount() + cols - 1) / cols;
+        BufferedImage sheet = new BufferedImage(cols * (size + gap), rows * (size + gap), BufferedImage.TYPE_INT_RGB);
+        Graphics2D g = sheet.createGraphics();
+        for (int i = 0; i < animation.frameCount(); i++) {
+            g.drawImage(render(animation.frames().get(i)), (i % cols) * (size + gap), (i / cols) * (size + gap), null);
+        }
+        g.dispose();
+        ImageIO.write(sheet, "png", target.toFile());
+    }
+
     private static BufferedImage render(PixooFrame frame) {
         byte[] rgb = frame.rgbData();
         BufferedImage img = new BufferedImage(64 * CELL, 64 * CELL, BufferedImage.TYPE_INT_RGB);
