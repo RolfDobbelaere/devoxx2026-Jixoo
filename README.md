@@ -10,6 +10,21 @@ blue → violet → rose gradient.
 |---|---|---|---|---|
 | ![](output/preview/google-dots-led.gif) | ![](output/preview/gemini-sparkle-led.gif) | ![](output/preview/google-spinner-led.gif) | ![](output/preview/matrix-rain-led.gif) | ![](output/preview/devoxx-gemini-led.gif) |
 
+### dev-runner v2: World Tour
+
+A remake of dev-runner starring the **Nano Banana developer**: Nano Banana 2 drew his run cycle, jump and landing as a
+sprite sheet using `nano-developer` as the reference image ([`assets/nano-developer-runsheet_v1.png`](assets/nano-developer-runsheet_v1.png)).
+He runs through **Jungle → Beach → City → BouncyLand → Grass** and back into the Jungle in one continuous shot:
+stomping bugs, grabbing Google G coins, bouncing on trampolines, with the Google Cloud companion floating along.
+
+![](output/preview/dev-runner_v2-world-tour-led.gif)
+
+- **25 fps, 24 s, 600 frames**, seamless loop. Five parallax layers (sky, horizon, mid, near, foreground) plus the
+  ground; themes are regions of the world, so far scenery of the next theme peeks in from the right and the ground
+  changes under his feet. No fades or wipes.
+- Files: `output/dev-runner_v2-world-tour.gif` and `.mp4`. Storyboard:
+  [`storyboards/dev-runner-world-tour.md`](storyboards/dev-runner-world-tour.md).
+
 ### Google-Gemini-Fly-Though-Exciting-World-Of-Possibilities (hero entry)
 
 GOOGLE is typed with a cursor, the camera dives through the O into a tunnel of swirling Google-colored smoke, the

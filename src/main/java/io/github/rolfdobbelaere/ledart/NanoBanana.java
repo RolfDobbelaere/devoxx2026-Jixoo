@@ -81,13 +81,27 @@ public final class NanoBanana {
 
     /** Generates a square image and returns its encoded bytes (PNG or JPEG). */
     public byte[] generate(String prompt) throws IOException, InterruptedException {
+        return generate(prompt, null, "1:1");
+    }
+
+    /**
+     * Generates an image, optionally guided by a reference image (e.g. to keep a character consistent),
+     * with the given aspect ratio ("1:1", "16:9", "21:9", ...).
+     */
+    public byte[] generate(String prompt, byte[] referencePng, String aspectRatio) throws IOException, InterruptedException {
         ObjectNode body = JSON.createObjectNode();
         ObjectNode content = body.putArray("contents").addObject();
         content.put("role", "user");
-        content.putArray("parts").addObject().put("text", prompt);
+        var parts = content.putArray("parts");
+        if (referencePng != null) {
+            ObjectNode inline = parts.addObject().putObject("inlineData");
+            inline.put("mimeType", "image/png");
+            inline.put("data", Base64.getEncoder().encodeToString(referencePng));
+        }
+        parts.addObject().put("text", prompt);
         ObjectNode config = body.putObject("generationConfig");
         config.putArray("responseModalities").add("TEXT").add("IMAGE");
-        config.putObject("imageConfig").put("aspectRatio", "1:1");
+        config.putObject("imageConfig").put("aspectRatio", aspectRatio);
 
         String url = vertex
                 ? "https://aiplatform.googleapis.com/v1/" + setting("GOOGLE_CLOUD_PROJECT")

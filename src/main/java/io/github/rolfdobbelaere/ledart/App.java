@@ -57,6 +57,13 @@ public final class App {
                 LedPreview.writeSheet(new PixooAnimation(all.frames().subList(first, first + count)),
                         OUT.resolve("preview").resolve(a.get(1) + "-strip.png"));
             }
+            case "sprites" -> { // sprites <reference.png> <out.png> "<prompt>": a sprite sheet of the same character
+                byte[] ref = Files.readAllBytes(Path.of(a.get(1)));
+                NanoBanana nano = new NanoBanana();
+                System.out.println("Asking " + nano.model() + " for a sprite sheet based on " + a.get(1));
+                Files.write(Path.of(a.get(2)), nano.generate(a.get(3), ref, "21:9"));
+                System.out.println("  -> " + a.get(2));
+            }
             case "models" -> new NanoBanana().printImageModels();
             default -> System.err.println("Unknown command '" + cmd + "'. Use: scenes | ai \"<subject>\" [name] [--snap] | models");
         }
