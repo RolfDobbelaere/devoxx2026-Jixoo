@@ -10,6 +10,12 @@ blue → violet → rose gradient.
 |---|---|---|---|---|
 | ![](output/preview/google-dots-led.gif) | ![](output/preview/gemini-sparkle-led.gif) | ![](output/preview/google-spinner-led.gif) | ![](output/preview/matrix-rain-led.gif) | ![](output/preview/devoxx-gemini-led.gif) |
 
+### nano-developer: generated with Nano Banana 2
+
+| Nano Banana source | 64×64 on the LED wall (shimmer) |
+|---|---|
+| <img src="output/preview/nano-developer-source.png" width="384"> | ![](output/preview/nano-developer-shimmer-led.gif) |
+
 ### dev-runner: a side-scroller loop
 
 A developer runs over a curved Google-colored planet, stomps a red and a green bug, bounces through a spinning
@@ -63,22 +69,36 @@ mvn -q compile exec:java -Dexec.args="ai 'a cute robot mascot holding a coffee c
 ```
 
 This writes `output/robot.gif` (still), `output/robot-shimmer.gif` (animated) and previews plus the raw Gemini image
-in `output/preview/`. Add `--raw` to keep the original colors instead of snapping to the Google palette.
+in `output/preview/`. Add `--snap` to force every pixel onto the Google palette (the default keeps Nano Banana's colors, which looks
+better for characters). `convert <image> <name>` re-processes an image you already have, without a new API call.
 
 ### Google Cloud setup
 
 1. Use the Google Cloud project that holds the Devoxx credits, and check that **Billing → Credits** shows them.
 2. Enable the **Generative Language API**: *APIs & Services → Library*, search for it, then click **Enable**.
-3. Create a key: *APIs & Services → Credentials → Create credentials → API key*. Restrict it to the Generative
-   Language API. (Or create it at [aistudio.google.com/apikey](https://aistudio.google.com/apikey) and pick the same
-   project.)
-4. Set it for the session (never commit it):
-   - PowerShell: `$env:GEMINI_API_KEY="AIza..."`
-   - bash: `export GEMINI_API_KEY="AIza..."`
+3. Create a key: *APIs & Services → Credentials → Create credentials → API key*. Under *API restrictions*, select
+   **Gemini API**. Google then asks you to bind the key to a **service account**: create one (e.g. `nano-banana`, no
+   roles needed) and select it. Click **Create** and copy the key with the copy button.
+4. Put the key in a `.env` file in this folder (it is git-ignored, never commit it):
+   ```
+   GEMINI_API_KEY=your-key-here
+   ```
+   An environment variable works too: `$env:GEMINI_API_KEY="..."` (PowerShell) or `export GEMINI_API_KEY="..."` (bash).
 5. Optional: run `mvn -q exec:java -Dexec.args="models"` to list the image models your key can use, and set
    `GEMINI_IMAGE_MODEL` if the default (`gemini-3.1-flash-image`, Nano Banana 2) isn't one of them.
 
-If you created a Vertex AI / Agent Platform express-mode key instead, also set `GEMINI_BACKEND=vertex`.
+**Free tier only?** If the Gemini API answers `RESOURCE_EXHAUSTED ... free_tier ... limit: 0`, your project is on the
+free tier (common with credit-only billing accounts). Use Vertex AI / Agent Platform instead, which bills to your
+Cloud billing account and credits:
+
+1. Enable the **Agent Platform API** (`aiplatform.googleapis.com`).
+2. Give the service account the **Agent Platform user** role (*IAM → Grant access*).
+3. Create a key restricted to the **Agent Platform API**, bound to that service account.
+4. Add to `.env`:
+   ```
+   GEMINI_BACKEND=vertex
+   GOOGLE_CLOUD_PROJECT=your-project-id
+   ```
 
 ## Credits
 

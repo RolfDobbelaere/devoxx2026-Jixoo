@@ -9,6 +9,8 @@ import java.net.URI;
 import java.net.http.HttpClient;
 import java.net.http.HttpRequest;
 import java.net.http.HttpResponse;
+import java.nio.file.Files;
+import java.nio.file.Path;
 import java.time.Duration;
 import java.util.Base64;
 import java.util.Optional;
@@ -21,7 +23,8 @@ import java.util.Optional;
  *   <li>{@code GEMINI_API_KEY}: API key (required)</li>
  *   <li>{@code GEMINI_IMAGE_MODEL}: model id, default {@value #DEFAULT_MODEL}</li>
  *   <li>{@code GEMINI_BACKEND}: {@code gemini} (Gemini API, default) or {@code vertex}
- *       (Vertex AI / Agent Platform, API key in express mode)</li>
+ *       (Vertex AI / Agent Platform, billed to your Google Cloud billing account and credits)</li>
+ *   <li>{@code GOOGLE_CLOUD_PROJECT}: project id, used by the {@code vertex} backend</li>
  * </ul>
  */
 public final class NanoBanana {
@@ -46,13 +49,30 @@ public final class NanoBanana {
     private final boolean vertex;
 
     public NanoBanana() {
-        this.apiKey = Optional.ofNullable(System.getenv("GEMINI_API_KEY"))
-                .or(() -> Optional.ofNullable(System.getenv("GOOGLE_API_KEY")))
-                .filter(k -> !k.isBlank())
+        this.apiKey = setting("GEMINI_API_KEY")
+                .or(() -> setting("GOOGLE_API_KEY"))
                 .orElseThrow(() -> new IllegalStateException(
-                        "Set GEMINI_API_KEY first (see README: 'Google Cloud setup')."));
-        this.model = Optional.ofNullable(System.getenv("GEMINI_IMAGE_MODEL")).filter(m -> !m.isBlank()).orElse(DEFAULT_MODEL);
-        this.vertex = "vertex".equalsIgnoreCase(System.getenv("GEMINI_BACKEND"));
+                        "Set GEMINI_API_KEY, or put GEMINI_API_KEY=... in a .env file (see README: 'Google Cloud setup')."));
+        this.model = setting("GEMINI_IMAGE_MODEL").orElse(DEFAULT_MODEL);
+        this.vertex = setting("GEMINI_BACKEND").map("vertex"::equalsIgnoreCase).orElse(false);
+    }
+
+    /** Reads a setting from the environment, falling back to a git-ignored {@code .env} file. */
+    private static Optional<String> setting(String name) {
+        Optional<String> env = Optional.ofNullable(System.getenv(name)).filter(v -> !v.isBlank());
+        if (env.isPresent()) return env;
+        Path dotEnv = Path.of(".env");
+        if (!Files.exists(dotEnv)) return Optional.empty();
+        try {
+            return Files.readAllLines(dotEnv).stream()
+                    .map(String::strip)
+                    .filter(line -> line.startsWith(name + "="))
+                    .map(line -> line.substring(name.length() + 1).strip().replaceAll("^[\"']|[\"']$", ""))
+                    .filter(v -> !v.isBlank())
+                    .findFirst();
+        } catch (IOException e) {
+            return Optional.empty();
+        }
     }
 
     public String model() {
@@ -70,7 +90,9 @@ public final class NanoBanana {
         config.putObject("imageConfig").put("aspectRatio", "1:1");
 
         String url = vertex
-                ? "https://aiplatform.googleapis.com/v1/publishers/google/models/" + model + ":generateContent"
+                ? "https://aiplatform.googleapis.com/v1/" + setting("GOOGLE_CLOUD_PROJECT")
+                        .map(p -> "projects/" + p + "/locations/global/").orElse("")
+                        + "publishers/google/models/" + model + ":generateContent"
                 : "https://generativelanguage.googleapis.com/v1beta/models/" + model + ":generateContent";
 
         HttpRequest request = HttpRequest.newBuilder(URI.create(url))

@@ -16,7 +16,8 @@ import java.util.List;
  *   scenes                       render all procedural Google/Gemini scenes (no API key needed)
  *   scene dev-runner             render a single scene
  *   sheet dev-runner             write a contact sheet of all frames of a scene
- *   ai "a robot" [name] [--raw]  generate with Nano Banana, convert to 64x64 + shimmer animation
+ *   ai "a robot" [name] [--snap]  generate with Nano Banana, convert to 64x64 + shimmer animation
+ *   convert img.png name [--snap] turn an existing image into 64x64 still + shimmer animation
  *   models                       list image-capable Gemini models for your key
  * </pre>
  */
@@ -36,17 +37,21 @@ public final class App {
                 }
             }
             case "ai" -> {
-                if (a.size() < 2) throw new IllegalArgumentException("Usage: ai \"<subject>\" [name] [--raw]");
+                if (a.size() < 2) throw new IllegalArgumentException("Usage: ai \"<subject>\" [name] [--snap]");
                 String subject = a.get(1);
                 String name = a.size() > 2 && !a.get(2).startsWith("--") ? a.get(2) : slug(subject);
-                boolean raw = a.contains("--raw"); // raw = don't snap colors to the Google palette
-                generateAi(subject, name, !raw);
+                // --snap forces every color onto the Google palette; the default keeps Nano Banana's colors
+                generateAi(subject, name, a.contains("--snap"));
+            }
+            case "convert" -> { // re-process an image you already have, e.g. a saved Nano Banana source
+                if (a.size() < 3) throw new IllegalArgumentException("Usage: convert <image file> <name> [--snap]");
+                convert(Files.readAllBytes(Path.of(a.get(1))), a.get(2), a.contains("--snap"));
             }
             case "scene" -> save(a.get(1), Scenes.render(a.get(1), DELAY_MS));
             case "sheet" -> LedPreview.writeSheet(Scenes.render(a.get(1), DELAY_MS),
                     OUT.resolve("preview").resolve(a.get(1) + "-sheet.png"));
             case "models" -> new NanoBanana().printImageModels();
-            default -> System.err.println("Unknown command '" + cmd + "'. Use: scenes | ai \"<subject>\" [name] [--raw] | models");
+            default -> System.err.println("Unknown command '" + cmd + "'. Use: scenes | ai \"<subject>\" [name] [--snap] | models");
         }
     }
 
@@ -55,7 +60,10 @@ public final class App {
         System.out.println("Asking " + nano.model() + " for: " + subject);
         byte[] bytes = nano.generate(NanoBanana.GOOGLE_STYLE.formatted(subject));
         Files.write(OUT.resolve("preview").resolve(name + "-source.png"), bytes);
+        convert(bytes, name, snap);
+    }
 
+    private static void convert(byte[] bytes, String name, boolean snap) throws Exception {
         PixooImage led = PixelArt.toLed(PixelArt.decode(bytes), snap);
         save(name, PixooAnimation.singleImage(led));
         save(name + "-shimmer", PixelArt.shimmer(led, DELAY_MS));
