@@ -16,6 +16,7 @@ import java.awt.RenderingHints;
 import java.awt.image.BufferedImage;
 import java.io.IOException;
 import java.nio.file.Path;
+import java.util.List;
 
 /**
  * Renders an upscaled "what it looks like on the LED wall" preview GIF, with each pixel drawn
@@ -28,15 +29,21 @@ public final class LedPreview {
     private LedPreview() {}
 
     public static void write(PixooAnimation animation, Path target) throws IOException {
+        // Long animations get a smaller preview that keeps every other frame, so the file stays reasonable.
+        boolean longOne = animation.frameCount() > 150;
+        int cell = longOne ? 4 : CELL, step = longOne ? 2 : 1;
         ImageWriter writer = ImageIO.getImageWritersByFormatName("gif").next();
         try (ImageOutputStream out = ImageIO.createImageOutputStream(target.toFile())) {
             writer.setOutput(out);
             writer.prepareWriteSequence(null);
             boolean first = true;
-            for (PixooFrame frame : animation.frames()) {
-                BufferedImage img = render(frame);
+            List<PixooFrame> frames = animation.frames();
+            for (int f = 0; f < frames.size(); f += step) {
+                int delay = 0;
+                for (int k = f; k < Math.min(f + step, frames.size()); k++) delay += frames.get(k).delayMs();
+                BufferedImage img = render(frames.get(f), cell);
                 IIOMetadata meta = writer.getDefaultImageMetadata(ImageTypeSpecifier.createFromRenderedImage(img), null);
-                configure(meta, frame.delayMs(), first);
+                configure(meta, delay, first);
                 writer.writeToSequence(new IIOImage(img, null, meta), null);
                 first = false;
             }
@@ -46,22 +53,24 @@ public final class LedPreview {
         }
     }
 
-    /** All frames side by side in a grid of 6 columns, handy to check an animation frame by frame. */
+    /** Frames side by side in a grid of 6 columns (at most 36, evenly sampled), to check an animation at a glance. */
     public static void writeSheet(PixooAnimation animation, Path target) throws IOException {
+        int count = Math.min(36, animation.frameCount());
         int cols = 6, size = 64 * CELL, gap = 8;
-        int rows = (animation.frameCount() + cols - 1) / cols;
+        int rows = (count + cols - 1) / cols;
         BufferedImage sheet = new BufferedImage(cols * (size + gap), rows * (size + gap), BufferedImage.TYPE_INT_RGB);
         Graphics2D g = sheet.createGraphics();
-        for (int i = 0; i < animation.frameCount(); i++) {
-            g.drawImage(render(animation.frames().get(i)), (i % cols) * (size + gap), (i / cols) * (size + gap), null);
+        for (int i = 0; i < count; i++) {
+            int frame = (int) ((long) i * animation.frameCount() / count);
+            g.drawImage(render(animation.frames().get(frame), CELL), (i % cols) * (size + gap), (i / cols) * (size + gap), null);
         }
         g.dispose();
         ImageIO.write(sheet, "png", target.toFile());
     }
 
-    private static BufferedImage render(PixooFrame frame) {
+    private static BufferedImage render(PixooFrame frame, int cell) {
         byte[] rgb = frame.rgbData();
-        BufferedImage img = new BufferedImage(64 * CELL, 64 * CELL, BufferedImage.TYPE_INT_RGB);
+        BufferedImage img = new BufferedImage(64 * cell, 64 * cell, BufferedImage.TYPE_INT_RGB);
         Graphics2D g = img.createGraphics();
         g.setRenderingHint(RenderingHints.KEY_ANTIALIASING, RenderingHints.VALUE_ANTIALIAS_ON);
         g.setColor(new Color(0x0A0A0A));
@@ -69,7 +78,7 @@ public final class LedPreview {
         for (int i = 0; i < 64 * 64; i++) {
             int r = rgb[i * 3] & 0xFF, gr = rgb[i * 3 + 1] & 0xFF, b = rgb[i * 3 + 2] & 0xFF;
             g.setColor(new Color(Math.max(r, 0x1A), Math.max(gr, 0x1A), Math.max(b, 0x1A)));
-            g.fillOval((i % 64) * CELL, (i / 64) * CELL, CELL - 1, CELL - 1);
+            g.fillOval((i % 64) * cell, (i / 64) * cell, cell - 1, cell - 1);
         }
         g.dispose();
         return img;

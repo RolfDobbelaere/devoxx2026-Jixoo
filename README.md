@@ -10,6 +10,22 @@ blue → violet → rose gradient.
 |---|---|---|---|---|
 | ![](output/preview/google-dots-led.gif) | ![](output/preview/gemini-sparkle-led.gif) | ![](output/preview/google-spinner-led.gif) | ![](output/preview/matrix-rain-led.gif) | ![](output/preview/devoxx-gemini-led.gif) |
 
+### Google-Gemini-Fly-Though-Exciting-World-Of-Possibilities (hero entry)
+
+GOOGLE is typed with a cursor, the camera dives through the O into a tunnel of swirling Google-colored smoke, the
+smoke burns away to reveal a candyland world mixed with IT (candy-striped mountains, rivers and waterfalls, lollipop
+trees, glowing circuit traces with racing data packets, server towers), the camera shoots up through colorful clouds
+until the world becomes a planet, and the planet flies over to become the dot on the "i" of GEMINI, where a Gemini
+sparkle flashes, before everything poofs into colorful dust and the loop starts again from black.
+
+![](output/preview/google-gemini-fly-through_v1-25fps-led.gif)
+
+- **25 fps, 16 s, 400 frames**, seamless loop (black to black), rendered at 128×128 and downsampled for sub-pixel smooth motion.
+- Smoke is domain-warped gradient noise ([`Noise.java`](src/main/java/io/github/rolfdobbelaere/ledart/Noise.java));
+  the world is a procedural height and color map rendered voxel-space style, and the same map is wrapped onto the planet.
+- Files: `output/google-gemini-fly-through_v1-25fps.gif` and a 512×512 nearest-neighbour `.mp4` of the same frames.
+- Storyboard: [`storyboards/google-gemini-fly-through.md`](storyboards/google-gemini-fly-through.md).
+
 ### coffee-factory: the Devoxx coffee line
 
 A robot claw places a DEVOXX cup on a conveyor belt. The camera follows the cup (it stays centred while belt and
@@ -19,12 +35,14 @@ up. The topping jiggles, the claw lifts the cup away, and a heart is left behind
 
 ![](output/preview/coffee-factory_v2-smooth-led.gif)
 
+Storyboard: [`storyboards/coffee-factory-love-story.md`](storyboards/coffee-factory-love-story.md).
+
 The story is written on a timeline in seconds (1 s travel between stations, 1 s pause before and after each pour)
 and sampled into frames that each have their own delay:
 
 | Version | Frames | Length | Notes |
 |---|---|---|---|
-| `coffee-factory_v2-smooth.gif` | 137 | ~20 s | ~10 fps while moving; for displays without a frame limit |
+| `CHOSEN_coffee-factory_v2-smooth.gif` | 137 | ~20 s | ~10 fps while moving; chosen, the booth display plays long GIFs |
 | `coffee-factory_v2-pixoo30.gif` | 30 | ~20 s | same timing; each pause is one 1-second frame (Pixoo 64 plays only ~30 frames) |
 | `coffee-factory_v1-fast.gif` | 30 | ~3.6 s | first version, too fast to read the dispensers |
 

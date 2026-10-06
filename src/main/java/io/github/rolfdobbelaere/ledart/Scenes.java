@@ -31,18 +31,21 @@ public final class Scenes {
             "dev-runner", DevRunner::frame,
             "googly-letters", GooglyLetters::frame,
             "coffee-factory", CoffeeFactory.SMOOTH::frame,
-            "coffee-factory-pixoo", CoffeeFactory.PIXOO::frame);
+            "coffee-factory-pixoo", CoffeeFactory.PIXOO::frame,
+            "gemini-flythrough", GeminiFlyThrough::frame);
 
     /** Scenes with their own per-frame timing; the others use the delay passed to {@link #render}. */
     private static final Map<String, IntUnaryOperator> DELAYS = Map.of(
             "googly-letters", GooglyLetters::delayMs,
             "coffee-factory", CoffeeFactory.SMOOTH::delayMs,
-            "coffee-factory-pixoo", CoffeeFactory.PIXOO::delayMs);
+            "coffee-factory-pixoo", CoffeeFactory.PIXOO::delayMs,
+            "gemini-flythrough", f -> GeminiFlyThrough.DELAY_MS);
 
     /** Scenes that are not exactly {@link #FRAMES} frames long. */
     private static final Map<String, Integer> FRAME_COUNTS = Map.of(
             "coffee-factory", CoffeeFactory.SMOOTH.frameCount(),
-            "coffee-factory-pixoo", CoffeeFactory.PIXOO.frameCount());
+            "coffee-factory-pixoo", CoffeeFactory.PIXOO.frameCount(),
+            "gemini-flythrough", GeminiFlyThrough.FRAME_COUNT);
 
     private Scenes() {}
 

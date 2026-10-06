@@ -51,6 +51,12 @@ public final class App {
             case "scene" -> save(outName(a), Scenes.render(a.get(1), DELAY_MS));
             case "sheet" -> LedPreview.writeSheet(Scenes.render(a.get(1), DELAY_MS),
                     OUT.resolve("preview").resolve(outName(a) + "-sheet.png"));
+            case "strip" -> { // consecutive frames side by side, to check motion: strip <scene> <first> <count>
+                PixooAnimation all = Scenes.render(a.get(1), DELAY_MS);
+                int first = Integer.parseInt(a.get(2)), count = Integer.parseInt(a.get(3));
+                LedPreview.writeSheet(new PixooAnimation(all.frames().subList(first, first + count)),
+                        OUT.resolve("preview").resolve(a.get(1) + "-strip.png"));
+            }
             case "models" -> new NanoBanana().printImageModels();
             default -> System.err.println("Unknown command '" + cmd + "'. Use: scenes | ai \"<subject>\" [name] [--snap] | models");
         }
