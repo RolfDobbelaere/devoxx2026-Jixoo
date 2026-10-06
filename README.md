@@ -107,6 +107,27 @@ The world scrolls exactly 90 px in 30 frames and every object repeats every 90 p
 
 *Previews are upscaled to show the LED look. The real 64×64 files to upload are in [`output/`](output).*
 
+## 1 MB uploads (`output/1mb/`)
+
+The raffle accepts files up to 1 MB. These versions keep the full **25 fps** and look the same as the originals:
+
+| File | Size | Frames | Length | From |
+|---|---|---|---|---|
+| [`google-gemini-fly-through_v2-1mb.gif`](output/1mb/google-gemini-fly-through_v2-1mb.gif) | 698 KB | 400 | 16 s | fly-through v1 |
+| [`coffee-factory_v5-1mb.gif`](output/1mb/coffee-factory_v5-1mb.gif) | 839 KB | 500 | 20 s | coffee factory v4 (3D) |
+| [`dev-runner_v3-1mb.gif`](output/1mb/dev-runner_v3-1mb.gif) | 941 KB | 500 | 20 s | dev-runner v2 world tour, 20 s cut |
+
+How: Jixoo's encoder stores a full 256-color palette and every pixel in every frame.
+[`scripts/gif-1mb.sh`](scripts/gif-1mb.sh) re-encodes with **one shared 256-color palette**, no dithering, and only
+the **changed rectangle** of each frame (transparency for unchanged pixels). Fewer colors (128 or 64) were tested and
+rejected: visible banding. The dev-runner also gets a 20 s cut (scene `dev-runner-2-20s`: the same world, run 20%
+faster) to fit.
+
+```bash
+mvn -q compile exec:java "-Dexec.args=scene dev-runner-2-20s dev-runner_v3-20s-source"
+bash scripts/gif-1mb.sh output/dev-runner_v3-20s-source.gif output/1mb/dev-runner_v3-1mb.gif
+```
+
 ## How it works
 
 - **Procedural scenes** ([`Scenes.java`](src/main/java/io/github/rolfdobbelaere/ledart/Scenes.java)): drawn on an

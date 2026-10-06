@@ -34,7 +34,9 @@ public final class Scenes {
             Map.entry("coffee-factory-pixoo", CoffeeFactory.PIXOO::frame),
             Map.entry("gemini-flythrough", GeminiFlyThrough::frame),
             Map.entry("coffee-factory-3d", CoffeeFactory3D::frame),
-            Map.entry("dev-runner-2", DevRunnerWorldTour::frame));
+            Map.entry("dev-runner-2", DevRunnerWorldTour::frame),
+            // 1 MB track: the same world tour in 20 s (500 frames at 25 fps) instead of 24 s.
+            Map.entry("dev-runner-2-20s", i -> DevRunnerWorldTour.render(i * DevRunnerWorldTour.DURATION / 500)));
 
     /** Scenes with their own per-frame timing; the others use the delay passed to {@link #render}. */
     private static final Map<String, IntUnaryOperator> DELAYS = Map.of(
@@ -43,7 +45,8 @@ public final class Scenes {
             "coffee-factory-pixoo", CoffeeFactory.PIXOO::delayMs,
             "gemini-flythrough", f -> GeminiFlyThrough.DELAY_MS,
             "coffee-factory-3d", f -> CoffeeFactory3D.DELAY_MS,
-            "dev-runner-2", f -> DevRunnerWorldTour.DELAY_MS);
+            "dev-runner-2", f -> DevRunnerWorldTour.DELAY_MS,
+            "dev-runner-2-20s", f -> DevRunnerWorldTour.DELAY_MS);
 
     /** Scenes that are not exactly {@link #FRAMES} frames long. */
     private static final Map<String, Integer> FRAME_COUNTS = Map.of(
@@ -51,7 +54,8 @@ public final class Scenes {
             "coffee-factory-pixoo", CoffeeFactory.PIXOO.frameCount(),
             "gemini-flythrough", GeminiFlyThrough.FRAME_COUNT,
             "coffee-factory-3d", CoffeeFactory3D.FRAME_COUNT,
-            "dev-runner-2", DevRunnerWorldTour.FRAME_COUNT);
+            "dev-runner-2", DevRunnerWorldTour.FRAME_COUNT,
+            "dev-runner-2-20s", 500);
 
     private Scenes() {}
 
