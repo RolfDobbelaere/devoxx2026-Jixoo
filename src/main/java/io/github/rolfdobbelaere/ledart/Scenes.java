@@ -28,11 +28,13 @@ public final class Scenes {
             "google-spinner", Scenes::googleSpinner,
             "devoxx-gemini", Scenes::devoxxGemini,
             "dev-runner", DevRunner::frame,
-            "googly-letters", GooglyLetters::frame);
+            "googly-letters", GooglyLetters::frame,
+            "coffee-factory", CoffeeFactory::frame);
 
     /** Scenes with their own per-frame timing; the others use the delay passed to {@link #render}. */
     private static final Map<String, IntUnaryOperator> DELAYS = Map.of(
-            "googly-letters", GooglyLetters::delayMs);
+            "googly-letters", GooglyLetters::delayMs,
+            "coffee-factory", CoffeeFactory::delayMs);
 
     private Scenes() {}
 

@@ -10,6 +10,15 @@ blue → violet → rose gradient.
 |---|---|---|---|---|
 | ![](output/preview/google-dots-led.gif) | ![](output/preview/gemini-sparkle-led.gif) | ![](output/preview/google-spinner-led.gif) | ![](output/preview/matrix-rain-led.gif) | ![](output/preview/devoxx-gemini-led.gif) |
 
+### coffee-factory: the Devoxx coffee line
+
+A robot claw places a DEVOXX cup on a conveyor belt. The camera follows the cup (it stays centred while belt and
+dispensers scroll past) through three stations: **JAVA** pours coffee (steam rises, a drop sloshes out when the cup
+moves on), **Gemini** builds a rainbow soft-serve swirl, and **DEV ♥** adds pink sprinkles while little hearts float
+up. The topping jiggles, the claw lifts the cup away, and a heart is left behind before everything fades to black.
+
+![](output/preview/coffee-factory-led.gif)
+
 ### googly-letters: GOOGLE meets DEVOXX
 
 Letters with googly eyes jump in one by one, land with squash-and-stretch and dust puffs, look around and blink,
