@@ -544,40 +544,58 @@ final class CoffeeFactory3D {
                 c.set(x, y, (to8(r / 4 * fade) << 16) | (to8(g / 4 * fade) << 8) | to8(b / 4 * fade));
             }
         }
-        geminiSign(c, s, fade);
+        for (int station = 0; station < STATIONS.length; station++) crispSign(c, s, station, fade);
         return c;
     }
 
     private static double dispenserHalfWidth(int station) {
-        return station == 1 ? 1.65 : 0.95;      // Gemini gets a wide signboard so its name fits on the LED grid
+        // Wide signboards so each name fits on the LED grid: GEMINI needs 23 LEDs, JAVA 15, the heart + DEV 17.
+        return station == 1 ? 1.65 : 1.25;
     }
 
+    private static final String[] HEART_5 = {".#.#.", "#####", "#####", ".###.", "..#.."};
+
     /**
-     * GEMINI, drawn pixel-exact on the 64x64 grid where the Gemini panel is on screen. A 3D-rendered word would
-     * be about 2 LEDs per letter stroke and blur when downsampled; this keeps every stroke one crisp LED.
+     * The dispenser's name, drawn pixel-exact on the 64x64 grid where its panel is on screen: JAVA (white on Java
+     * orange), GEMINI (Gemini gradient on dark glass), a beating heart + DEV (on pink). A word rendered in 3D would
+     * fall between LEDs and blur when downsampled; this keeps every stroke one crisp LED.
      */
-    private static void geminiSign(Canvas c, Scene s, double fade) {
-        double[] left = s.project(new V(STATIONS[1] - 1.48, 4.8, 0.73));
-        double[] right = s.project(new V(STATIONS[1] + 1.48, 4.8, 0.73));
+    private static void crispSign(Canvas c, Scene s, int station, double fade) {
+        double half = dispenserHalfWidth(station) - 0.17;
+        double[] left = s.project(new V(STATIONS[station] - half, 4.8, 0.73));
+        double[] right = s.project(new V(STATIONS[station] + half, 4.8, 0.73));
         if (left == null || right == null) return;
-        double width = (right[0] - left[0]) / 2;                     // panel width in LED pixels
-        double alpha = smoothstep(19, 24, width) * fade;
+        String word = switch (station) { case 0 -> "JAVA"; case 1 -> "GEMINI"; default -> "DEV"; };
+        int iconW = station == 2 ? 6 : 0;                                  // heart (5) + 1 gap before DEV
+        int textW = word.length() * 4 - 1, totalW = iconW + textW;
+        double width = (right[0] - left[0]) / 2;                           // panel width in LED pixels
+        double alpha = smoothstep(totalW - 3, totalW + 1, width) * fade;
         if (alpha <= 0) return;
-        String word = "GEMINI";
-        int textW = word.length() * 4 - 1;
-        int x0 = (int) Math.round((left[0] + right[0]) / 4 - textW / 2.0);
+        int x0 = (int) Math.round((left[0] + right[0]) / 4 - totalW / 2.0);
         int y0 = (int) Math.round((left[1] + right[1]) / 4 - 2.5);
         double pulse = 0.85 + 0.15 * Math.sin(s.t * 5);
+        int plate = switch (station) { case 0 -> 0xE76F00; case 1 -> 0x0D0D1A; default -> 0xFFF0F5; };
         for (int y = -1; y <= 5; y++) {
-            for (int x = -1; x <= textW; x++) {
-                c.blend(x0 + x, y0 + y, 0x0D0D1A, alpha);               // dark backing for contrast
+            for (int x = -1; x <= totalW; x++) c.blend(x0 + x, y0 + y, plate, alpha);   // backing plate for contrast
+        }
+        if (station == 2) {                                                // beating heart icon
+            double beat = Math.max(0, Math.sin(s.t * 7));
+            int heart = lerp(0xE91E63, 0xFF6F9F, beat);
+            for (int y = 0; y < 5; y++) {
+                for (int x = 0; x < 5; x++) {
+                    if (HEART_5[y].charAt(x) == '#') c.blend(x0 + x, y0 + y, heart, alpha);
+                }
             }
         }
         for (int cx = 0; cx < textW; cx++) {
             for (int cy = 0; cy < 5; cy++) {
                 if (!textAt(word, (cx + 0.5) / textW, (cy + 0.5) / 5)) continue;
-                int col = lerp(GoogleColors.gradient(GEMINI_GRADIENT, cx / (double) (textW - 1)), 0xFFFFFF, 0.25);
-                c.blend(x0 + cx, y0 + cy, lerp(0, col, pulse), alpha);
+                int col = switch (station) {
+                    case 0 -> 0xFFFFFF;
+                    case 1 -> lerp(lerp(GoogleColors.gradient(GEMINI_GRADIENT, cx / (double) (textW - 1)), 0xFFFFFF, 0.25), 0, 1 - pulse);
+                    default -> 0x8B1A3A;
+                };
+                c.blend(x0 + iconW + cx, y0 + cy, col, alpha);
             }
         }
     }
@@ -798,7 +816,7 @@ final class CoffeeFactory3D {
                 return Surface.of(on ? 0xFFFFFF : 0xE76F00, 0.4, 40);
             }
             case 1 -> {
-                // Dark glass with a glowing gradient frame; the word GEMINI is drawn pixel-exact on top (geminiSign).
+                // Dark glass with a glowing gradient frame; the word GEMINI is drawn pixel-exact on top (crispSign).
                 double frame = Math.max(Math.abs(lx), Math.abs(ly));
                 if (frame > 0.9) {
                     double pulse = 0.8 + 0.4 * Math.sin(t * 5);

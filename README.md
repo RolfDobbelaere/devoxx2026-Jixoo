@@ -123,6 +123,7 @@ These cuts use **at most 60 frames**, motion at **~8-11 fps**, and spend single 
 | File | Frames | Length | Size | What it is |
 |---|---|---|---|---|
 | [`dev-runner_v4-hw60.gif`](output/hw/dev-runner_v4-hw60.gif) | 60 | 5.4 s @ 11.1 fps | 214 KB | Re-imagined as a compact dash: all five themes in a 240 px world, one action per theme, 4 px per frame |
+| [`coffee-factory_v7-signs-hw60.gif`](output/hw/coffee-factory_v7-signs-hw60.gif) | 60 | 10.7 s | 176 KB | v6 with crisp, readable **JAVA**, **GEMINI** and **♥ DEV** signs (pixel-exact text on wider signboards) |
 | [`coffee-factory_v6-hw60.gif`](output/hw/coffee-factory_v6-hw60.gif) | 60 | 10.7 s | 177 KB | The full 3D story; each "look" and "admire" moment is one 0.6-0.7 s frame |
 | [`google-gemini-fly-through_v3-hw60.gif`](output/hw/google-gemini-fly-through_v3-hw60.gif) | 60 | 7.5 s | 191 KB | The full fly-through story, every beat |
 
