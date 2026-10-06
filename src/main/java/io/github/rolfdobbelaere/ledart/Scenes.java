@@ -22,30 +22,33 @@ public final class Scenes {
     public static final int FRAMES = 30;
     private static final double TAU = Math.PI * 2;
 
-    public static final Map<String, IntFunction<Canvas>> ALL = Map.of(
-            "google-dots", Scenes::googleDots,
-            "gemini-sparkle", Scenes::geminiSparkle,
-            "matrix-rain", Scenes::matrixRain,
-            "google-spinner", Scenes::googleSpinner,
-            "devoxx-gemini", Scenes::devoxxGemini,
-            "dev-runner", DevRunner::frame,
-            "googly-letters", GooglyLetters::frame,
-            "coffee-factory", CoffeeFactory.SMOOTH::frame,
-            "coffee-factory-pixoo", CoffeeFactory.PIXOO::frame,
-            "gemini-flythrough", GeminiFlyThrough::frame);
+    public static final Map<String, IntFunction<Canvas>> ALL = Map.ofEntries(
+            Map.entry("google-dots", Scenes::googleDots),
+            Map.entry("gemini-sparkle", Scenes::geminiSparkle),
+            Map.entry("matrix-rain", Scenes::matrixRain),
+            Map.entry("google-spinner", Scenes::googleSpinner),
+            Map.entry("devoxx-gemini", Scenes::devoxxGemini),
+            Map.entry("dev-runner", DevRunner::frame),
+            Map.entry("googly-letters", GooglyLetters::frame),
+            Map.entry("coffee-factory", CoffeeFactory.SMOOTH::frame),
+            Map.entry("coffee-factory-pixoo", CoffeeFactory.PIXOO::frame),
+            Map.entry("gemini-flythrough", GeminiFlyThrough::frame),
+            Map.entry("coffee-factory-3d", CoffeeFactory3D::frame));
 
     /** Scenes with their own per-frame timing; the others use the delay passed to {@link #render}. */
     private static final Map<String, IntUnaryOperator> DELAYS = Map.of(
             "googly-letters", GooglyLetters::delayMs,
             "coffee-factory", CoffeeFactory.SMOOTH::delayMs,
             "coffee-factory-pixoo", CoffeeFactory.PIXOO::delayMs,
-            "gemini-flythrough", f -> GeminiFlyThrough.DELAY_MS);
+            "gemini-flythrough", f -> GeminiFlyThrough.DELAY_MS,
+            "coffee-factory-3d", f -> CoffeeFactory3D.DELAY_MS);
 
     /** Scenes that are not exactly {@link #FRAMES} frames long. */
     private static final Map<String, Integer> FRAME_COUNTS = Map.of(
             "coffee-factory", CoffeeFactory.SMOOTH.frameCount(),
             "coffee-factory-pixoo", CoffeeFactory.PIXOO.frameCount(),
-            "gemini-flythrough", GeminiFlyThrough.FRAME_COUNT);
+            "gemini-flythrough", GeminiFlyThrough.FRAME_COUNT,
+            "coffee-factory-3d", CoffeeFactory3D.FRAME_COUNT);
 
     private Scenes() {}
 
