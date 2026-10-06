@@ -26,20 +26,22 @@ sparkle flashes, before everything poofs into colorful dust and the loop starts 
 - Files: `output/google-gemini-fly-through_v1-25fps.gif` and a 512×512 nearest-neighbour `.mp4` of the same frames.
 - Storyboard: [`storyboards/google-gemini-fly-through.md`](storyboards/google-gemini-fly-through.md).
 
-### coffee-factory v3: the Pixar-style 3D remake
+### coffee-factory v4: the Pixar-style 3D remake
 
 The coffee factory story retold as a little animated short. The DEVOXX cup is the hero: it sleeps while the claw
 sets it down, wakes up in a close-up, looks up at each dispenser in anticipation, closes its eyes in bliss at the
 coffee, is amazed by the Gemini swirl (wrapped in swirling colored smoke and sparkles), blushes when DEV ♥ sprinkles
 it with love, giggles through the jiggle and is carried away, leaving a glossy glowing heart.
 
-![](output/preview/coffee-factory_v3-pixar3d-led.gif)
+![](output/preview/coffee-factory_v4-gemini-label-led.gif)
 
 - **Real 3D** on 64×64: every pixel is ray marched through signed distance functions (hollow tapered cup, coffee,
   soft-serve of stacked tori, belt, rollers, dispensers, claw, puffy heart) with soft shadows, ambient occlusion,
   glossy highlights, a warm key light, a cool fill, a violet rim light, ACES tone mapping and Google-colored bokeh
   ([`CoffeeFactory3D.java`](src/main/java/io/github/rolfdobbelaere/ledart/CoffeeFactory3D.java)).
-- **25 fps, 20 s, 500 frames**, black to black. Files: `output/coffee-factory_v3-pixar3d.gif` and `.mp4`.
+- **25 fps, 20 s, 500 frames**, black to black. Files: `output/coffee-factory_v4-gemini-label.gif` and `.mp4`.
+- **v4** gives the Gemini dispenser a wide signboard and draws **GEMINI** pixel-exact on the LED grid so the name stays
+  readable during the rainbow swirl (v3 only showed the sparkle icon).
 - Storyboard: [`storyboards/coffee-factory-pixar-3d.md`](storyboards/coffee-factory-pixar-3d.md).
 
 ### coffee-factory: the Devoxx coffee line
@@ -58,7 +60,8 @@ and sampled into frames that each have their own delay:
 
 | Version | Frames | Length | Notes |
 |---|---|---|---|
-| `coffee-factory_v3-pixar3d.gif` | 500 | 20 s | Pixar-style 3D remake, 25 fps (see above) |
+| `coffee-factory_v4-gemini-label.gif` | 500 | 20 s | 3D remake with a readable GEMINI sign |
+| `coffee-factory_v3-pixar3d.gif` | 500 | 20 s | Pixar-style 3D remake, 25 fps; Gemini shown as icon only |
 | `CHOSEN_coffee-factory_v2-smooth.gif` | 137 | ~20 s | ~10 fps while moving; chosen, the booth display plays long GIFs |
 | `coffee-factory_v2-pixoo30.gif` | 30 | ~20 s | same timing; each pause is one 1-second frame (Pixoo 64 plays only ~30 frames) |
 | `coffee-factory_v1-fast.gif` | 30 | ~3.6 s | first version, too fast to read the dispensers |

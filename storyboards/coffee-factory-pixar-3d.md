@@ -34,7 +34,7 @@ What the fly-through got right, and the 2D coffee factory didn't have yet:
 | 4.2 – 5.6 | Close | A glossy coffee stream pours in and the cup fills up. | Eyes close blissfully (^ ^), big smile. |
 | 5.6 – 6.6 | Hold | Steam curls up from the coffee. | Content smile. |
 | 6.6 – 7.6 | Tracking shot | Moving on: the coffee sloshes and a shiny drop flies out backwards. | Glances back at the drop: "oops". |
-| 7.6 – 8.6 | Push-in | Stop under **Gemini**: a sleek dark dispenser with a glowing gradient sparkle. | Amazed: eyes wide, "o" mouth. |
+| 7.6 – 8.6 | Push-in | Stop under **Gemini**: a wide dark-glass signboard reading **GEMINI** in the blue → violet → rose gradient (drawn pixel-exact on the LED grid so it stays readable), and a Gemini sparkle twinkling at its nozzle. | Amazed: eyes wide, "o" mouth. |
 | 8.6 – 10.2 | Close | A rainbow stream builds a turning **soft-serve swirl**, wrapped in swirling Google-colored smoke and sparkles. | Delighted grin. |
 | 10.2 – 11.2 | Hold | The swirl glistens. | Looks up at its new hat. |
 | 11.2 – 12.2 | Tracking shot | Moving on; the topping wobbles. | – |
@@ -55,4 +55,6 @@ What the fly-through got right, and the 2D coffee factory didn't have yet:
   in surface coordinates.
 - **Effects:** steam, Gemini smoke and sparkles, sprinkles and floating hearts are layered on top in screen space,
   positioned by projecting their 3D locations, and reuse the smoke noise of the fly-through.
+- **Readable names:** at 64×64 a word rendered in 3D blurs, so **GEMINI** is drawn pixel-exact on the final LED grid,
+  pinned to where the projected Gemini panel is, and fades in once the panel is wide enough on screen (v4).
 - **Speed:** rows are rendered in parallel; about 500 frames.

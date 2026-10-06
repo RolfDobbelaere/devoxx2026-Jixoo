@@ -328,15 +328,16 @@ final class CoffeeFactory3D {
             if (roller < best) { best = roller; mat = M_ROLLER; }
 
             // Dispensers (only the ones near the camera are evaluated).
-            for (double sx : STATIONS) {
-                if (Math.abs(p.x - sx) > 4) { best = Math.min(best, Math.abs(p.x - sx) - 1.5); continue; }
-                double body = sdRoundBox(new V(p.x - sx, p.y - 4.8, p.z), 0.95, 0.62, 0.72, 0.12);
+            for (int i = 0; i < STATIONS.length; i++) {
+                double sx = STATIONS[i], hw = dispenserHalfWidth(i);
+                if (Math.abs(p.x - sx) > 4) { best = Math.min(best, Math.abs(p.x - sx) - hw - 0.2); continue; }
+                double body = sdRoundBox(new V(p.x - sx, p.y - 4.8, p.z), hw, 0.62, 0.72, 0.12);
                 if (body < best) { best = body; mat = M_DISPENSER; }
                 double nozzle = sdCappedCone(Math.hypot(p.x - sx, p.z), p.y - 3.98, 0.2, 0.12, 0.26);
                 double pipe = Math.max(Math.hypot(p.x - sx, p.z) - 0.11, Math.abs(p.y - 8) - 2.6);
                 double metal = Math.min(nozzle, pipe);
                 if (metal < best) { best = metal; mat = M_NOZZLE; }
-                double lamp = new V(p.x - sx - 0.72, p.y - 5.45, p.z - 0.45).len() - 0.09;
+                double lamp = new V(p.x - sx - hw + 0.23, p.y - 5.45, p.z - 0.45).len() - 0.09;
                 if (lamp < best) { best = lamp; mat = M_LAMP; }
             }
 
@@ -543,7 +544,42 @@ final class CoffeeFactory3D {
                 c.set(x, y, (to8(r / 4 * fade) << 16) | (to8(g / 4 * fade) << 8) | to8(b / 4 * fade));
             }
         }
+        geminiSign(c, s, fade);
         return c;
+    }
+
+    private static double dispenserHalfWidth(int station) {
+        return station == 1 ? 1.65 : 0.95;      // Gemini gets a wide signboard so its name fits on the LED grid
+    }
+
+    /**
+     * GEMINI, drawn pixel-exact on the 64x64 grid where the Gemini panel is on screen. A 3D-rendered word would
+     * be about 2 LEDs per letter stroke and blur when downsampled; this keeps every stroke one crisp LED.
+     */
+    private static void geminiSign(Canvas c, Scene s, double fade) {
+        double[] left = s.project(new V(STATIONS[1] - 1.48, 4.8, 0.73));
+        double[] right = s.project(new V(STATIONS[1] + 1.48, 4.8, 0.73));
+        if (left == null || right == null) return;
+        double width = (right[0] - left[0]) / 2;                     // panel width in LED pixels
+        double alpha = smoothstep(19, 24, width) * fade;
+        if (alpha <= 0) return;
+        String word = "GEMINI";
+        int textW = word.length() * 4 - 1;
+        int x0 = (int) Math.round((left[0] + right[0]) / 4 - textW / 2.0);
+        int y0 = (int) Math.round((left[1] + right[1]) / 4 - 2.5);
+        double pulse = 0.85 + 0.15 * Math.sin(s.t * 5);
+        for (int y = -1; y <= 5; y++) {
+            for (int x = -1; x <= textW; x++) {
+                c.blend(x0 + x, y0 + y, 0x0D0D1A, alpha);               // dark backing for contrast
+            }
+        }
+        for (int cx = 0; cx < textW; cx++) {
+            for (int cy = 0; cy < 5; cy++) {
+                if (!textAt(word, (cx + 0.5) / textW, (cy + 0.5) / 5)) continue;
+                int col = lerp(GoogleColors.gradient(GEMINI_GRADIENT, cx / (double) (textW - 1)), 0xFFFFFF, 0.25);
+                c.blend(x0 + cx, y0 + cy, lerp(0, col, pulse), alpha);
+            }
+        }
     }
 
     private static int to8(double v) { return (int) Math.clamp(Math.round(v), 0, 255); }
@@ -671,8 +707,9 @@ final class CoffeeFactory3D {
             case M_DISPENSER -> {
                 int station = nearestStation(p.x);
                 int body = switch (station) { case 0 -> 0xECE7E1; case 1 -> 0x1B1B2A; default -> 0xF8BBD0; };
-                if (n.z > 0.8 && Math.abs(p.x - STATIONS[station]) < 0.78 && Math.abs(p.y - 4.8) < 0.45) {
-                    return label(s, station, (p.x - STATIONS[station]) / 0.78, (p.y - 4.8) / 0.45);
+                double panel = dispenserHalfWidth(station) - 0.17;
+                if (n.z > 0.8 && Math.abs(p.x - STATIONS[station]) < panel && Math.abs(p.y - 4.8) < 0.45) {
+                    return label(s, station, (p.x - STATIONS[station]) / panel, (p.y - 4.8) / 0.45);
                 }
                 return Surface.of(body, station == 1 ? 0.9 : 0.6, station == 1 ? 90 : 50);
             }
@@ -724,14 +761,18 @@ final class CoffeeFactory3D {
         return best;
     }
 
-    private static final Map<Character, String[]> FONT = Map.of(
-            'J', new String[]{"###", "..#", "..#", "#.#", ".#."},
-            'A', new String[]{".#.", "#.#", "###", "#.#", "#.#"},
-            'V', new String[]{"#.#", "#.#", "#.#", ".#.", ".#."},
-            'D', new String[]{"##.", "#.#", "#.#", "#.#", "##."},
-            'E', new String[]{"###", "#..", "##.", "#..", "###"},
-            'O', new String[]{"###", "#.#", "#.#", "#.#", "###"},
-            'X', new String[]{"#.#", "#.#", ".#.", "#.#", "#.#"});
+    private static final Map<Character, String[]> FONT = Map.ofEntries(
+            Map.entry('J', new String[]{"###", "..#", "..#", "#.#", ".#."}),
+            Map.entry('A', new String[]{".#.", "#.#", "###", "#.#", "#.#"}),
+            Map.entry('V', new String[]{"#.#", "#.#", "#.#", ".#.", ".#."}),
+            Map.entry('D', new String[]{"##.", "#.#", "#.#", "#.#", "##."}),
+            Map.entry('E', new String[]{"###", "#..", "##.", "#..", "###"}),
+            Map.entry('O', new String[]{"###", "#.#", "#.#", "#.#", "###"}),
+            Map.entry('X', new String[]{"#.#", "#.#", ".#.", "#.#", "#.#"}),
+            Map.entry('G', new String[]{".##", "#..", "#.#", "#.#", ".##"}),
+            Map.entry('M', new String[]{"#.#", "###", "###", "#.#", "#.#"}),
+            Map.entry('N', new String[]{"##.", "#.#", "#.#", "#.#", "#.#"}),
+            Map.entry('I', new String[]{"###", ".#.", ".#.", ".#.", "###"}));
 
     /** Is the text lit at (u, v) in [0,1]x[0,1] of its box? */
     private static boolean textAt(String text, double u, double v) {
@@ -757,14 +798,14 @@ final class CoffeeFactory3D {
                 return Surface.of(on ? 0xFFFFFF : 0xE76F00, 0.4, 40);
             }
             case 1 -> {
-                double x = Math.abs(lx), y = Math.abs(ly) * 1.6;
-                double star = Math.pow(x / 0.95, 0.5) + Math.pow(y / 0.95, 0.5);
-                double pulse = 0.8 + 0.4 * Math.sin(t * 5);
-                if (star < 1) {
-                    double[] e = linColor(GoogleColors.gradient(GEMINI_GRADIENT, clamp01((lx + ly + 1) / 2)));
+                // Dark glass with a glowing gradient frame; the word GEMINI is drawn pixel-exact on top (geminiSign).
+                double frame = Math.max(Math.abs(lx), Math.abs(ly));
+                if (frame > 0.9) {
+                    double pulse = 0.8 + 0.4 * Math.sin(t * 5);
+                    double[] e = linColor(GoogleColors.gradient(GEMINI_GRADIENT, clamp01((lx + 1) / 2)));
                     return new Surface(e, 0.5, 40, new double[]{e[0] * pulse, e[1] * pulse, e[2] * pulse}, 0);
                 }
-                return Surface.of(0x15152A, 0.9, 90);
+                return Surface.of(0x0D0D1A, 0.9, 90);
             }
             default -> {
                 boolean text = textAt("DEV", (u - 0.03) / 0.56, (v - 0.15) / 0.7);
@@ -878,10 +919,13 @@ final class CoffeeFactory3D {
                 double[] h = s.project(new V(END_X, 0.75, 0));
                 if (h != null) glow(h[0], h[1], 18 * s.heartScale, 0xFF4D7E, 0.4);
             }
-            if (t > ARRIVE[1] - 0.6 && t < LEAVE[1] + 0.6) {                   // the Gemini label glows
-                double[] g = s.project(new V(STATIONS[1], 4.8, 0.75));
-                double k = 0.7 + 0.3 * Math.sin(t * 5);
-                if (g != null) glow(g[0], g[1], 9, 0x9177C7, 0.35 * k);
+            if (t > ARRIVE[1] - 1.6 && t < LEAVE[1] + 1.2) {                   // Gemini sparkle twinkles at the nozzle
+                double[] g = s.project(new V(STATIONS[1], 3.72, 0.3));
+                double k = 0.75 + 0.25 * Math.sin(t * 5);
+                if (g != null) {
+                    glow(g[0], g[1], 5, 0x9177C7, 0.45 * k);
+                    sparkle(g[0], g[1], 5 * k, 0x7B9CFF, 1);
+                }
             }
             motes(t);
         }

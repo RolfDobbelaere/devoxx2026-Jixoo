@@ -30,6 +30,16 @@ public final class Canvas {
         b[i] = GoogleColors.b(color);
     }
 
+    /** Mixes a color over the pixel with opacity a. */
+    public void blend(int x, int y, int color, double a) {
+        if (x < 0 || y < 0 || x >= SIZE || y >= SIZE || a <= 0) return;
+        int i = y * SIZE + x;
+        a = Math.min(1, a);
+        r[i] = r[i] * (1 - a) + GoogleColors.r(color) * a;
+        g[i] = g[i] * (1 - a) + GoogleColors.g(color) * a;
+        b[i] = b[i] * (1 - a) + GoogleColors.b(color) * a;
+    }
+
     /** Solid anti-aliased disc with a soft halo around it. */
     public void glowDot(double cx, double cy, double radius, int color, double haloRadius, double haloStrength) {
         int reach = (int) Math.ceil(radius + haloRadius) + 1;
