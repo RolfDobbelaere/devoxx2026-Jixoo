@@ -36,7 +36,11 @@ public final class Scenes {
             Map.entry("coffee-factory-3d", CoffeeFactory3D::frame),
             Map.entry("dev-runner-2", DevRunnerWorldTour::frame),
             // 1 MB track: the same world tour in 20 s (500 frames at 25 fps) instead of 24 s.
-            Map.entry("dev-runner-2-20s", i -> DevRunnerWorldTour.render(i * DevRunnerWorldTour.DURATION / 500)));
+            Map.entry("dev-runner-2-20s", i -> DevRunnerWorldTour.renderTour(i * DevRunnerWorldTour.DURATION / 500)),
+            // Pixoo-friendly "hw" track: at most 60 frames, ~8-11 fps of motion.
+            Map.entry("dev-runner-hw", DevRunnerWorldTour::dashFrame),
+            Map.entry("coffee-factory-hw", HardwareCuts.COFFEE::frame),
+            Map.entry("flythrough-hw", HardwareCuts.FLYTHROUGH::frame));
 
     /** Scenes with their own per-frame timing; the others use the delay passed to {@link #render}. */
     private static final Map<String, IntUnaryOperator> DELAYS = Map.of(
@@ -46,7 +50,10 @@ public final class Scenes {
             "gemini-flythrough", f -> GeminiFlyThrough.DELAY_MS,
             "coffee-factory-3d", f -> CoffeeFactory3D.DELAY_MS,
             "dev-runner-2", f -> DevRunnerWorldTour.DELAY_MS,
-            "dev-runner-2-20s", f -> DevRunnerWorldTour.DELAY_MS);
+            "dev-runner-2-20s", f -> DevRunnerWorldTour.DELAY_MS,
+            "dev-runner-hw", f -> DevRunnerWorldTour.DASH_DELAY_MS,
+            "coffee-factory-hw", HardwareCuts.COFFEE::delayMs,
+            "flythrough-hw", HardwareCuts.FLYTHROUGH::delayMs);
 
     /** Scenes that are not exactly {@link #FRAMES} frames long. */
     private static final Map<String, Integer> FRAME_COUNTS = Map.of(
@@ -55,7 +62,10 @@ public final class Scenes {
             "gemini-flythrough", GeminiFlyThrough.FRAME_COUNT,
             "coffee-factory-3d", CoffeeFactory3D.FRAME_COUNT,
             "dev-runner-2", DevRunnerWorldTour.FRAME_COUNT,
-            "dev-runner-2-20s", 500);
+            "dev-runner-2-20s", 500,
+            "dev-runner-hw", DevRunnerWorldTour.DASH_FRAMES,
+            "coffee-factory-hw", HardwareCuts.COFFEE.frameCount(),
+            "flythrough-hw", HardwareCuts.FLYTHROUGH.frameCount());
 
     private Scenes() {}
 

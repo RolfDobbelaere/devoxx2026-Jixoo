@@ -107,6 +107,25 @@ The world scrolls exactly 90 px in 30 frames and every object repeats every 90 p
 
 *Previews are upscaled to show the LED look. The real 64×64 files to upload are in [`output/`](output).*
 
+## Pixoo hardware track (`output/hw/`): recommended uploads
+
+The judging also scores **hardware compatibility**, and the 25 fps versions were penalized. The documented Pixoo 64
+limits are about the **number of frames**, not the file size: every frame is decoded to 12,288 bytes of RGB, and the
+device's HTTP GIF buffer holds about **60 frames** (Jixoo `SPECIFICATION.md`; the ESP32 has ~320 KB of usable RAM).
+Divoom recommends **8-12 fps** and **12-24 frames** for pixel art on the Pixoo-64, under 1 MB
+([Divoom animation guide](https://divoom.com/blogs/app-guide/how-to-animate-pixel-art-divoom-display)). A 500-frame,
+25 fps GIF decodes to ~6 MB.
+
+These cuts use **at most 60 frames**, motion at **~8-11 fps**, and spend single long frames on the pauses
+([`Timeline.java`](src/main/java/io/github/rolfdobbelaere/ledart/Timeline.java),
+[`HardwareCuts.java`](src/main/java/io/github/rolfdobbelaere/ledart/HardwareCuts.java)):
+
+| File | Frames | Length | Size | What it is |
+|---|---|---|---|---|
+| [`dev-runner_v4-hw60.gif`](output/hw/dev-runner_v4-hw60.gif) | 60 | 5.4 s @ 11.1 fps | 214 KB | Re-imagined as a compact dash: all five themes in a 240 px world, one action per theme, 4 px per frame |
+| [`coffee-factory_v6-hw60.gif`](output/hw/coffee-factory_v6-hw60.gif) | 60 | 10.7 s | 177 KB | The full 3D story; each "look" and "admire" moment is one 0.6-0.7 s frame |
+| [`google-gemini-fly-through_v3-hw60.gif`](output/hw/google-gemini-fly-through_v3-hw60.gif) | 60 | 7.5 s | 191 KB | The full fly-through story, every beat |
+
 ## 1 MB uploads (`output/1mb/`)
 
 The raffle accepts files up to 1 MB. These versions keep the full **25 fps** and look the same as the originals:

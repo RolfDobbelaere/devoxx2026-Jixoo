@@ -28,7 +28,11 @@ final class DevRunnerWorldTour {
     static final int DELAY_MS = 1000 / FPS;
 
     private static final int W = 128;
-    private static final double SPEED = 40, LOOP = 960, SEG = 192;
+    /** The current level: World Tour (24 s, 960 px) or the Pixoo-friendly dash (60 frames, 240 px). */
+    private static double SPEED = 40, LOOP = 960, SEG = 192, STRIDE = 6, dur = DURATION;
+    /** Parallax factors of the far, mid and near layers, and the near layer's cell width (per level). */
+    private static double F_FAR = 0.2, F_MID = 0.5, F_NEAR = 0.8, NEAR_CELL = 16;
+    static final int DASH_FRAMES = 60, DASH_DELAY_MS = 90;
     private static final double DEV_X = 20, GROUND = 52;           // LED pixels
     private static final int JUNGLE = 0, BEACH = 1, CITY = 2, BOUNCY = 3, GRASS = 4;
     private static final double TAU = Math.PI * 2;
@@ -76,7 +80,7 @@ final class DevRunnerWorldTour {
 
     /** A sine that completes n whole cycles per loop, so it is seamless. */
     private static double wave(double t, int n, double phase) {
-        return Math.sin(TAU * n * t / DURATION + phase);
+        return Math.sin(TAU * n * t / dur + phase);
     }
 
     // ------------------------------------------------------------------ hi-res canvas
@@ -276,7 +280,41 @@ final class DevRunnerWorldTour {
     private static final List<Arc> ARCS = new ArrayList<>();
     private static final List<Thing> THINGS = new ArrayList<>();
 
+    private static boolean dash;
+
     static {
+        useLevel(false);
+    }
+
+    /** Switches between the World Tour and the compact dash (same themes, layers and characters). */
+    private static void useLevel(boolean compact) {
+        dash = compact;
+        ARCS.clear();
+        THINGS.clear();
+        if (compact) {
+            dur = DASH_FRAMES * DASH_DELAY_MS / 1000.0;   // 5.4 s
+            LOOP = 240; SEG = 48; SPEED = LOOP / dur; STRIDE = 4; // exactly 4 px per frame: one run pose per frame
+            // Short regions: background layers scroll closer to the ground's speed, so each shows only the
+            // current region and the next one arriving (slower layers would show all five themes at once).
+            F_FAR = 0.4; F_MID = 0.7; F_NEAR = 0.9; NEAR_CELL = 18;
+            for (int s = 0; s < 5; s++) {
+                double o = s * SEG;
+                switch (s) {
+                    case JUNGLE -> { stomp(o, 8, 24, 44, 10, s); THINGS.add(new Thing(o + 34, COIN, s)); }
+                    case BEACH -> hop(o, 12, 24, 36, 11, CASTLE, s);
+                    case CITY -> { hop(o, 10, 22, 34, 10, CONE, s); THINGS.add(new Thing(o + 22, COIN, s)); }
+                    case BOUNCY -> {
+                        THINGS.add(new Thing(o + 8, TRAMPOLINE, s));
+                        ARCS.add(new Arc(o + 8, o + 44, 0, 0, 20, true, true));
+                        THINGS.add(new Thing(o + 26, COIN, s));
+                    }
+                    default -> { stomp(o, 8, 24, 44, 10, s); THINGS.add(new Thing(o + 34, COIN, s)); }
+                }
+            }
+            return;
+        }
+        dur = DURATION; LOOP = 960; SEG = 192; SPEED = 40; STRIDE = 6;
+        F_FAR = 0.2; F_MID = 0.5; F_NEAR = 0.8; NEAR_CELL = 16;
         for (int s = 0; s < 5; s++) {
             double o = s * SEG;
             switch (s) {
@@ -344,10 +382,22 @@ final class DevRunnerWorldTour {
     // ------------------------------------------------------------------ frame
 
     static Canvas frame(int index) {
-        return render(index / (double) FPS);
+        return renderTour(index / (double) FPS);
     }
 
-    static Canvas render(double t) {
+    /** World Tour at story time t (seconds). */
+    static Canvas renderTour(double t) {
+        if (dash) useLevel(false);
+        return render(t);
+    }
+
+    /** Pixoo-friendly dash: 60 frames, 4 px of scrolling per frame, all five themes. */
+    static Canvas dashFrame(int index) {
+        if (!dash) useLevel(true);
+        return render(index * dur / DASH_FRAMES);
+    }
+
+    private static Canvas render(double t) {
         double camX = SPEED * t;                         // LED px, wraps every LOOP
         Buf buf = new Buf();
         sky(buf, t, camX);
@@ -374,7 +424,7 @@ final class DevRunnerWorldTour {
             {0x3D8BFD, 0xDDF4FF}};  // grass: clear day
 
     private static void sky(Buf buf, double t, double camX) {
-        double[] tb = themeBlend(camX + 32, 70);
+        double[] tb = themeBlend(camX + 32, Math.min(70, SEG * 0.36));
         int a = (int) tb[0], b = (int) tb[1];
         double m = tb[2];
         for (int y = 0; y < 104; y++) {
@@ -440,11 +490,11 @@ final class DevRunnerWorldTour {
     // ------------------------------------------------------------------ far layer (factor 0.2): horizon silhouettes
 
     private static double farHeight(int theme, double u) {
-        double p = 192;
+        double p = F_FAR * LOOP;                                                // far layer period
         return switch (theme) {
             case JUNGLE -> 31 + 5 * Math.sin(TAU * 2 * u / p) + 3 * Math.sin(TAU * 5 * u / p + 1) + 1.5 * Math.sin(TAU * 11 * u / p);
-            case BEACH -> 42 - Math.max(0, 4 - Math.abs(fmod(u, 96) - 60) * 0.35);  // sea horizon with an island
-            case CITY -> 24 + 13 * hash((long) Math.floor(u / 6), 7);
+            case BEACH -> 42 - Math.max(0, 4 - Math.abs(fmod(u, p / 2) - p * 0.3125) * 0.35);  // sea with an island
+            case CITY -> 24 + 13 * hash((long) Math.floor(u / (p / 32)), 7);
             case BOUNCY -> 38 - 6 * Math.abs(Math.sin(TAU * 3 * u / p));
             default -> 37 + 3 * Math.sin(TAU * 3 * u / p) + 2 * Math.sin(TAU * 7 * u / p + 2);
         };
@@ -462,8 +512,8 @@ final class DevRunnerWorldTour {
 
     private static void farLayer(Buf buf, double t, double camX) {
         for (int x = 0; x < W; x++) {
-            double u = x / 2.0 + camX * 0.2;
-            double[] tb = themeBlend(layerWorld(u, 0.2), 50);
+            double u = x / 2.0 + camX * F_FAR;
+            double[] tb = themeBlend(layerWorld(u, F_FAR), Math.min(50, SEG * 0.26));
             int a = (int) tb[0], b = (int) tb[1];
             double m = tb[2];
             double top = farHeight(a, u) * (1 - m) + farHeight(b, u) * m;
@@ -479,7 +529,7 @@ final class DevRunnerWorldTour {
                     double on = hash(ix * 31 + y, 3);
                     if (on > 0.55) buf.over(x, y, on > 0.9 ? FOUR[(int) (on * 40) % 4] : 0xFFD180, 0.8 * (0.7 + 0.3 * wave(t, 6, on * 9)));
                 }
-                if (th == BEACH && y < 92 && hash(x + (long) Math.floor(camX * 0.4), y) > 0.97) {
+                if (th == BEACH && y < 92 && hash(x + (long) Math.floor(camX * 2 * F_FAR), y) > 0.97) {
                     buf.add(x, y, 0xFFFFFF, 0.6 * Math.max(0, wave(t, 24, x * 0.7 + y)));
                 }
             }
@@ -489,7 +539,7 @@ final class DevRunnerWorldTour {
     // ------------------------------------------------------------------ mid layer (factor 0.5, cells of 24)
 
     private static void midLayer(Buf buf, double t, double camX) {
-        double f = 0.5, cell = 24, period = LOOP * f;
+        double f = F_MID, cell = 24, period = LOOP * f;
         double scroll = camX * f;
         for (int k = (int) Math.floor((scroll - 24) / cell); k <= (scroll + 64 + 24) / cell; k++) {
             double uu = fmod(k * cell, period);
@@ -577,7 +627,7 @@ final class DevRunnerWorldTour {
         }
         double topY = 34 + (h - 0.5) * 30;
         buf.rect(x - 1.5, topY, x + 1.5, 100, 0xFFFFFF, 1);
-        double spin = TAU * t / DURATION * 2;
+        double spin = TAU * t / dur * 2;
         for (int y = (int) (topY - 14); y <= topY + 14; y++) {
             for (int xx = (int) (x - 14); xx <= x + 14; xx++) {
                 double dx = xx + 0.5 - x, dy = y + 0.5 - topY;
@@ -600,7 +650,7 @@ final class DevRunnerWorldTour {
     // ------------------------------------------------------------------ near layer (factor 0.8, cells of 16)
 
     private static void nearLayer(Buf buf, double t, double camX) {
-        double f = 0.8, cell = 16, period = LOOP * f;
+        double f = F_NEAR, cell = NEAR_CELL, period = LOOP * f;
         double scroll = camX * f;
         for (int k = (int) Math.floor((scroll - 16) / cell); k <= (scroll + 64 + 16) / cell; k++) {
             double uu = fmod(k * cell, period);
@@ -824,7 +874,7 @@ final class DevRunnerWorldTour {
     }
 
     private static void coin(Buf buf, double cx, double cy, double t) {
-        double spin = Math.cos(TAU * 6 * t / DURATION);
+        double spin = Math.cos(TAU * 6 * t / dur);
         double w = Math.max(0.25, Math.abs(spin));
         buf.glow(cx, cy, 6, 0xFFD54F, 0.35);
         buf.ellipse(cx, cy, 7 * w + 0.5, 7, 0xF9A825, 1);
@@ -855,7 +905,7 @@ final class DevRunnerWorldTour {
         } else {
             Arc prev = null;
             for (Arc a : ARCS) if (a.x1() <= devWx && devWx - a.x1() < 5) prev = a;
-            int run = (int) Math.floorMod((long) Math.floor(devWx / 6), 4L);
+            int run = (int) Math.floorMod((long) Math.floor(devWx / STRIDE), 4L);
             pose = prev != null && POSES.size() > 5 ? POSES.get(5) : POSES.get(run); // landing, else run cycle
         }
         double feet = (GROUND - h) * 2;
@@ -904,7 +954,7 @@ final class DevRunnerWorldTour {
             }
         }
         // Theme ambience, weighted by how much of that theme is on screen.
-        double[] tb = themeBlend(camX + 32, 70);
+        double[] tb = themeBlend(camX + 32, Math.min(70, SEG * 0.36));
         for (int s = 0; s < 2; s++) {
             int th = (int) tb[s];
             double w = s == 0 ? 1 - tb[2] : tb[2];
@@ -917,7 +967,7 @@ final class DevRunnerWorldTour {
                         buf.glow(x, y, 2.2, 0xEEFF41, w * 0.6 * Math.max(0, wave(t, 10 + i, i)));
                     }
                     case BOUNCY -> {                                                 // rising bubbles
-                        double y = fmod(110 - (t / DURATION * 6 + ph) * 128, 128), x = ph * 128 + 3 * wave(t, 8, i);
+                        double y = fmod(110 - (t / dur * 6 + ph) * 128, 128), x = ph * 128 + 3 * wave(t, 8, i);
                         for (int a = 0; a < 24; a++) {
                             double ang = TAU * a / 24;
                             buf.add((int) (x + Math.cos(ang) * 3.5), (int) (y + Math.sin(ang) * 3.5), 0xFFFFFF, w * 0.35);
@@ -926,7 +976,7 @@ final class DevRunnerWorldTour {
                     }
                     case GRASS -> {                                                  // butterflies
                         if (i > 3) break;
-                        double x = fmod(ph * 128 + t * 128 / DURATION, 128), y = 50 + 20 * hash(i, 43) + 5 * wave(t, 6, i);
+                        double x = fmod(ph * 128 + t * 128 / dur, 128), y = 50 + 20 * hash(i, 43) + 5 * wave(t, 6, i);
                         double flap = Math.abs(wave(t, 120, i));
                         buf.ellipse(x - 1.8, y, 1.8 * flap + 0.4, 2, FOUR[i % 4], w);
                         buf.ellipse(x + 1.8, y, 1.8 * flap + 0.4, 2, FOUR[i % 4], w);
@@ -957,7 +1007,7 @@ final class DevRunnerWorldTour {
                 buf.over(x, y, col, clamp01(inside + 0.5));
             }
         }
-        boolean blink = fmod(t, 4.8) > 4.6;
+        boolean blink = fmod(t, dur / 5) > dur / 5 - 0.2;
         for (int s = -1; s <= 1; s += 2) {
             if (blink) buf.line(cx + s * 3.5 - 1.2, cy, cx + s * 3.5 + 1.2, cy, 0.8, 0x202124, 1);
             else buf.disc(cx + s * 3.5, cy, 1.3, 0x202124, 1);
@@ -970,7 +1020,7 @@ final class DevRunnerWorldTour {
     // ------------------------------------------------------------------ foreground (factor 1.4)
 
     private static void foreground(Buf buf, double t, double camX) {
-        double f = 1.4, cell = 96, period = LOOP * f;
+        double f = 1.4, period = LOOP * f, cell = period / Math.max(1, Math.round(period / 96));
         double scroll = camX * f;
         for (int k = (int) Math.floor((scroll - 40) / cell); k <= (scroll + 64 + 40) / cell; k++) {
             double uu = fmod(k * cell, period);
