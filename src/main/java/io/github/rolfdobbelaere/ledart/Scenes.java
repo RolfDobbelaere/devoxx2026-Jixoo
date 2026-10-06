@@ -8,6 +8,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.Random;
 import java.util.function.IntFunction;
+import java.util.function.IntUnaryOperator;
 
 import static io.github.rolfdobbelaere.ledart.GoogleColors.*;
 
@@ -26,7 +27,12 @@ public final class Scenes {
             "matrix-rain", Scenes::matrixRain,
             "google-spinner", Scenes::googleSpinner,
             "devoxx-gemini", Scenes::devoxxGemini,
-            "dev-runner", DevRunner::frame);
+            "dev-runner", DevRunner::frame,
+            "googly-letters", GooglyLetters::frame);
+
+    /** Scenes with their own per-frame timing; the others use the delay passed to {@link #render}. */
+    private static final Map<String, IntUnaryOperator> DELAYS = Map.of(
+            "googly-letters", GooglyLetters::delayMs);
 
     private Scenes() {}
 
@@ -35,7 +41,8 @@ public final class Scenes {
         if (scene == null) throw new IllegalArgumentException("Unknown scene: " + name + ", choose from " + ALL.keySet());
         List<PixooFrame> frames = new ArrayList<>();
         for (int f = 0; f < FRAMES; f++) {
-            frames.add(scene.apply(f).toImage().toFrame(delayMs));
+            int delay = DELAYS.containsKey(name) ? DELAYS.get(name).applyAsInt(f) : delayMs;
+            frames.add(scene.apply(f).toImage().toFrame(delay));
         }
         return new PixooAnimation(frames);
     }

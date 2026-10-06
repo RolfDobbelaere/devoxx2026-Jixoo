@@ -10,6 +10,15 @@ blue → violet → rose gradient.
 |---|---|---|---|---|
 | ![](output/preview/google-dots-led.gif) | ![](output/preview/gemini-sparkle-led.gif) | ![](output/preview/google-spinner-led.gif) | ![](output/preview/matrix-rain-led.gif) | ![](output/preview/devoxx-gemini-led.gif) |
 
+### googly-letters: GOOGLE meets DEVOXX
+
+Letters with googly eyes jump in one by one, land with squash-and-stretch and dust puffs, look around and blink,
+then all turn to look at a friendly Google Cloud that swooshes in and blows them off screen, leaving sparkles
+that fade back to black. Letters are drawn analytically and supersampled 3x3, so they can rotate and stretch
+smoothly; per-frame delays let the hold linger and the swoosh rush, within the Pixoo's 30-frame limit.
+
+![](output/preview/googly-letters-led.gif)
+
 ### Generated with Nano Banana 2
 
 | Nano Banana source | 64×64 on the LED wall (shimmer) |
