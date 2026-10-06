@@ -14,8 +14,8 @@ import java.util.List;
  *
  * <pre>
  *   scenes                       render all procedural Google/Gemini scenes (no API key needed)
- *   scene dev-runner             render a single scene
- *   sheet dev-runner             write a contact sheet of all frames of a scene
+ *   scene dev-runner [out-name]  render a single scene, optionally to a versioned name (name_v2-comment)
+ *   sheet dev-runner [out-name]  write a contact sheet of all frames of a scene
  *   ai "a robot" [name] [--snap]  generate with Nano Banana, convert to 64x64 + shimmer animation
  *   convert img.png name [--snap] turn an existing image into 64x64 still + shimmer animation
  *   models                       list image-capable Gemini models for your key
@@ -47,9 +47,10 @@ public final class App {
                 if (a.size() < 3) throw new IllegalArgumentException("Usage: convert <image file> <name> [--snap]");
                 convert(Files.readAllBytes(Path.of(a.get(1))), a.get(2), a.contains("--snap"));
             }
-            case "scene" -> save(a.get(1), Scenes.render(a.get(1), DELAY_MS));
+            // Optional second argument: the output name, e.g. "coffee-factory_v2-smooth" to keep earlier versions.
+            case "scene" -> save(outName(a), Scenes.render(a.get(1), DELAY_MS));
             case "sheet" -> LedPreview.writeSheet(Scenes.render(a.get(1), DELAY_MS),
-                    OUT.resolve("preview").resolve(a.get(1) + "-sheet.png"));
+                    OUT.resolve("preview").resolve(outName(a) + "-sheet.png"));
             case "models" -> new NanoBanana().printImageModels();
             default -> System.err.println("Unknown command '" + cmd + "'. Use: scenes | ai \"<subject>\" [name] [--snap] | models");
         }
@@ -74,6 +75,10 @@ public final class App {
         GifEncoder.encode(animation, gif);
         LedPreview.write(animation, OUT.resolve("preview").resolve(name + "-led.gif"));
         System.out.printf("  %-28s %2d frames -> %s%n", name, animation.frameCount(), gif);
+    }
+
+    private static String outName(List<String> args) {
+        return args.size() > 2 ? args.get(2) : args.get(1);
     }
 
     private static String slug(String s) {

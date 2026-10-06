@@ -13,8 +13,9 @@ import java.util.function.IntUnaryOperator;
 import static io.github.rolfdobbelaere.ledart.GoogleColors.*;
 
 /**
- * Procedural 64x64 animations in Google / Gemini colors. Every scene loops seamlessly
- * and stays at 30 frames or fewer, the limit the Pixoo 64 plays before restarting a GIF.
+ * Procedural 64x64 animations in Google / Gemini colors. Every scene loops seamlessly. Most stay at
+ * 30 frames, the limit the Pixoo 64 plays before restarting a GIF; story scenes can also come in a longer,
+ * smoother cut (see {@link #FRAME_COUNTS}).
  */
 public final class Scenes {
 
@@ -29,12 +30,19 @@ public final class Scenes {
             "devoxx-gemini", Scenes::devoxxGemini,
             "dev-runner", DevRunner::frame,
             "googly-letters", GooglyLetters::frame,
-            "coffee-factory", CoffeeFactory::frame);
+            "coffee-factory", CoffeeFactory.SMOOTH::frame,
+            "coffee-factory-pixoo", CoffeeFactory.PIXOO::frame);
 
     /** Scenes with their own per-frame timing; the others use the delay passed to {@link #render}. */
     private static final Map<String, IntUnaryOperator> DELAYS = Map.of(
             "googly-letters", GooglyLetters::delayMs,
-            "coffee-factory", CoffeeFactory::delayMs);
+            "coffee-factory", CoffeeFactory.SMOOTH::delayMs,
+            "coffee-factory-pixoo", CoffeeFactory.PIXOO::delayMs);
+
+    /** Scenes that are not exactly {@link #FRAMES} frames long. */
+    private static final Map<String, Integer> FRAME_COUNTS = Map.of(
+            "coffee-factory", CoffeeFactory.SMOOTH.frameCount(),
+            "coffee-factory-pixoo", CoffeeFactory.PIXOO.frameCount());
 
     private Scenes() {}
 
@@ -42,7 +50,8 @@ public final class Scenes {
         IntFunction<Canvas> scene = ALL.get(name);
         if (scene == null) throw new IllegalArgumentException("Unknown scene: " + name + ", choose from " + ALL.keySet());
         List<PixooFrame> frames = new ArrayList<>();
-        for (int f = 0; f < FRAMES; f++) {
+        int count = FRAME_COUNTS.getOrDefault(name, FRAMES);
+        for (int f = 0; f < count; f++) {
             int delay = DELAYS.containsKey(name) ? DELAYS.get(name).applyAsInt(f) : delayMs;
             frames.add(scene.apply(f).toImage().toFrame(delay));
         }

@@ -17,7 +17,16 @@ dispensers scroll past) through three stations: **JAVA** pours coffee (steam ris
 moves on), **Gemini** builds a rainbow soft-serve swirl, and **DEV ♥** adds pink sprinkles while little hearts float
 up. The topping jiggles, the claw lifts the cup away, and a heart is left behind before everything fades to black.
 
-![](output/preview/coffee-factory-led.gif)
+![](output/preview/coffee-factory_v2-smooth-led.gif)
+
+The story is written on a timeline in seconds (1 s travel between stations, 1 s pause before and after each pour)
+and sampled into frames that each have their own delay:
+
+| Version | Frames | Length | Notes |
+|---|---|---|---|
+| `coffee-factory_v2-smooth.gif` | 137 | ~20 s | ~10 fps while moving; for displays without a frame limit |
+| `coffee-factory_v2-pixoo30.gif` | 30 | ~20 s | same timing; each pause is one 1-second frame (Pixoo 64 plays only ~30 frames) |
+| `coffee-factory_v1-fast.gif` | 30 | ~3.6 s | first version, too fast to read the dispensers |
 
 ### googly-letters: GOOGLE meets DEVOXX
 
@@ -79,6 +88,12 @@ Render one scene, or a contact sheet of all its frames:
 ```bash
 mvn -q compile exec:java -Dexec.args="scene dev-runner"
 mvn -q compile exec:java -Dexec.args="sheet dev-runner"
+```
+
+Iterations are kept side by side as `name_v#-comment`; pass the output name as an extra argument:
+
+```bash
+mvn -q compile exec:java -Dexec.args="scene coffee-factory coffee-factory_v2-smooth"
 ```
 
 ## Generate with Nano Banana
