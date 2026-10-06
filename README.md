@@ -10,11 +10,12 @@ blue → violet → rose gradient.
 |---|---|---|---|---|
 | ![](output/preview/google-dots-led.gif) | ![](output/preview/gemini-sparkle-led.gif) | ![](output/preview/google-spinner-led.gif) | ![](output/preview/matrix-rain-led.gif) | ![](output/preview/devoxx-gemini-led.gif) |
 
-### nano-developer: generated with Nano Banana 2
+### Generated with Nano Banana 2
 
 | Nano Banana source | 64×64 on the LED wall (shimmer) |
 |---|---|
 | <img src="output/preview/nano-developer-source.png" width="384"> | ![](output/preview/nano-developer-shimmer-led.gif) |
+| <img src="output/preview/nano-bug-source.png" width="384"> | ![](output/preview/nano-bug-shimmer-led.gif) |
 
 ### dev-runner: a side-scroller loop
 
@@ -79,11 +80,12 @@ better for characters). `convert <image> <name>` re-processes an image you alrea
 3. Create a key: *APIs & Services → Credentials → Create credentials → API key*. Under *API restrictions*, select
    **Gemini API**. Google then asks you to bind the key to a **service account**: create one (e.g. `nano-banana`, no
    roles needed) and select it. Click **Create** and copy the key with the copy button.
-4. Put the key in a `.env` file in this folder (it is git-ignored, never commit it):
-   ```
-   GEMINI_API_KEY=your-key-here
-   ```
-   An environment variable works too: `$env:GEMINI_API_KEY="..."` (PowerShell) or `export GEMINI_API_KEY="..."` (bash).
+4. Store the key as an environment variable (never commit it):
+   - Windows: *Edit environment variables for your account → New*, name `GEMINI_API_KEY`, then open a new terminal.
+     Or in PowerShell: `setx GEMINI_API_KEY "your-key"` (also needs a new terminal).
+   - macOS/Linux: `export GEMINI_API_KEY="your-key"` in your shell profile.
+
+   As a fallback, the app also reads `GEMINI_API_KEY=...` from a git-ignored `.env` file in this folder.
 5. Optional: run `mvn -q exec:java -Dexec.args="models"` to list the image models your key can use, and set
    `GEMINI_IMAGE_MODEL` if the default (`gemini-3.1-flash-image`, Nano Banana 2) isn't one of them.
 
