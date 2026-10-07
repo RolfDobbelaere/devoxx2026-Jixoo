@@ -64,6 +64,27 @@ public final class App {
                 Files.write(Path.of(a.get(2)), nano.generate(a.get(3), ref, "21:9"));
                 System.out.println("  -> " + a.get(2));
             }
+            case "hq-coffee" -> { // hq-coffee <size> <out.mp4>: the 3D coffee film at full quality, piped into ffmpeg
+                int size = Integer.parseInt(a.get(1));
+                Process ffmpeg = new ProcessBuilder("ffmpeg", "-v", "error", "-y", "-f", "rawvideo", "-pix_fmt", "rgb24",
+                        "-s", size + "x" + size, "-r", String.valueOf(CoffeeFactory3D.FPS), "-i", "-",
+                        "-c:v", "libx264", "-preset", "slow", "-crf", "14", "-pix_fmt", "yuv420p", "-movflags", "+faststart",
+                        a.get(2)).redirectOutput(ProcessBuilder.Redirect.INHERIT).redirectError(ProcessBuilder.Redirect.INHERIT).start();
+                try (var out = new java.io.BufferedOutputStream(ffmpeg.getOutputStream())) {
+                    byte[] buf = new byte[size * size * 3];
+                    for (int f = 0; f < CoffeeFactory3D.FRAME_COUNT; f++) {
+                        int[] px = CoffeeFactory3D.renderHQ(f / (double) CoffeeFactory3D.FPS, size);
+                        for (int i = 0; i < px.length; i++) {
+                            buf[i * 3] = (byte) (px[i] >> 16);
+                            buf[i * 3 + 1] = (byte) (px[i] >> 8);
+                            buf[i * 3 + 2] = (byte) px[i];
+                        }
+                        out.write(buf);
+                        if (f % 100 == 0) System.out.println("  frame " + f + "/" + CoffeeFactory3D.FRAME_COUNT);
+                    }
+                }
+                System.out.println("  -> " + a.get(2) + " (ffmpeg exit " + ffmpeg.waitFor() + ")");
+            }
             case "models" -> new NanoBanana().printImageModels();
             default -> System.err.println("Unknown command '" + cmd + "'. Use: scenes | ai \"<subject>\" [name] [--snap] | models");
         }

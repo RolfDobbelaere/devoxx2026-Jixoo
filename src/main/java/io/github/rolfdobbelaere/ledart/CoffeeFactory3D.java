@@ -21,7 +21,8 @@ final class CoffeeFactory3D {
     static final int FRAME_COUNT = (int) Math.round(DURATION * FPS);
     static final int DELAY_MS = 1000 / FPS;
 
-    private static final int W = 128;
+    private static int W = 128;              // render buffer size (128 for the LED grid; larger for the HQ film)
+    private static double K = 1;             // screen-space effect scale relative to 128
     private static final double FOV = Math.toRadians(56);
     private static final double[] STATIONS = {10, 20, 30};   // JAVA, Gemini, DEV dispensers (world x)
     private static final double END_X = 36;
@@ -262,7 +263,7 @@ final class CoffeeFactory3D {
             for (int i = 0; i < 12; i++) {
                 V p = new V(i * 7.3 - 4 + Math.floor((targetX + 20) / 84) * 84, 3 + (i * 37 % 11) * 0.7, -24);
                 double[] s = project(p);
-                bokeh[i] = s == null ? null : new double[]{s[0], s[1], 5 + (i * 13 % 7), i % 4};
+                bokeh[i] = s == null ? null : new double[]{s[0], s[1], (5 + (i * 13 % 7)) * K, i % 4};
             }
         }
 
@@ -515,22 +516,7 @@ final class CoffeeFactory3D {
 
     static Canvas render(double t) {
         Scene s = new Scene(t);
-        double[] rgb = new double[W * W * 3];
-        IntStream.range(0, W).parallel().forEach(y -> {
-            for (int x = 0; x < W; x++) {
-                double[] c = tracePixel(s, x + 0.5, y + 0.5);
-                int i = (y * W + x) * 3;
-                rgb[i] = c[0]; rgb[i + 1] = c[1]; rgb[i + 2] = c[2];
-            }
-        });
-        // Exposure, tone map (ACES approximation) and gamma, to 0..255.
-        for (int i = 0; i < rgb.length; i++) {
-            double v = rgb[i] * 1.45;
-            v = (v * (2.51 * v + 0.03)) / (v * (2.43 * v + 0.59) + 0.14);
-            rgb[i] = 255 * Math.pow(clamp01(v), 1 / 2.2);
-        }
-        Overlay o = new Overlay(s, rgb);
-        o.draw();
+        double[] rgb = renderBuffer(s);
         double fade = smoothstep(0, PLACE, t) * (1 - smoothstep(FADE_OUT, BLACK, t));
 
         Canvas c = new Canvas();
@@ -546,6 +532,55 @@ final class CoffeeFactory3D {
         }
         for (int station = 0; station < STATIONS.length; station++) crispSign(c, s, station, fade);
         return c;
+    }
+
+    /**
+     * High-quality frame at size x size (not constrained by the LED grid): rendered at twice that size and
+     * downsampled 2x2 for anti-aliasing. Returns packed 0xRRGGBB pixels.
+     */
+    static synchronized int[] renderHQ(double t, int size) {
+        W = size * 2;
+        K = W / 128.0;
+        try {
+            Scene s = new Scene(t);
+            double[] rgb = renderBuffer(s);
+            double fade = smoothstep(0, PLACE, t) * (1 - smoothstep(FADE_OUT, BLACK, t));
+            int[] out = new int[size * size];
+            for (int y = 0; y < size; y++) {
+                for (int x = 0; x < size; x++) {
+                    double r = 0, g = 0, b = 0;
+                    for (int k = 0; k < 4; k++) {
+                        int i = ((y * 2 + k / 2) * W + x * 2 + k % 2) * 3;
+                        r += rgb[i]; g += rgb[i + 1]; b += rgb[i + 2];
+                    }
+                    out[y * size + x] = (to8(r / 4 * fade) << 16) | (to8(g / 4 * fade) << 8) | to8(b / 4 * fade);
+                }
+            }
+            return out;
+        } finally {
+            W = 128;
+            K = 1;
+        }
+    }
+
+    /** Ray traced, tone mapped buffer (0..255) with the screen-space effects on top, W x W. */
+    private static double[] renderBuffer(Scene s) {
+        double[] rgb = new double[W * W * 3];
+        IntStream.range(0, W).parallel().forEach(y -> {
+            for (int x = 0; x < W; x++) {
+                double[] c = tracePixel(s, x + 0.5, y + 0.5);
+                int i = (y * W + x) * 3;
+                rgb[i] = c[0]; rgb[i + 1] = c[1]; rgb[i + 2] = c[2];
+            }
+        });
+        // Exposure, tone map (ACES approximation) and gamma, to 0..255.
+        for (int i = 0; i < rgb.length; i++) {
+            double v = rgb[i] * 1.45;
+            v = (v * (2.51 * v + 0.03)) / (v * (2.43 * v + 0.59) + 0.14);
+            rgb[i] = 255 * Math.pow(clamp01(v), 1 / 2.2);
+        }
+        new Overlay(s, rgb).draw();
+        return rgb;
     }
 
     private static double dispenserHalfWidth(int station) {
@@ -624,7 +659,7 @@ final class CoffeeFactory3D {
         for (double[] k : s.bokeh) {
             if (k == null) continue;
             double d = Math.hypot(px - k[0], py - k[1]);
-            double a = smoothstep(k[2], k[2] - 2.5, d) * 0.22 + smoothstep(k[2] + 3, k[2] - 1, d) * 0.06;
+            double a = smoothstep(k[2], k[2] - 2.5 * K, d) * 0.22 + smoothstep(k[2] + 3 * K, k[2] - K, d) * 0.06;
             int col = FOUR[(int) k[3]];
             r += lin(GoogleColors.r(col)) * a; g += lin(GoogleColors.g(col)) * a; b += lin(GoogleColors.b(col)) * a;
         }
@@ -823,12 +858,17 @@ final class CoffeeFactory3D {
                     double[] e = linColor(GoogleColors.gradient(GEMINI_GRADIENT, clamp01((lx + 1) / 2)));
                     return new Surface(e, 0.5, 40, new double[]{e[0] * pulse, e[1] * pulse, e[2] * pulse}, 0);
                 }
+                if (K > 1 && textAt("GEMINI", (u - 0.07) / 0.86, (v - 0.22) / 0.56)) {   // HQ film: real 3D text
+                    double pulse = 0.8 + 0.4 * Math.sin(t * 5);
+                    double[] e = linColor(lerp(GoogleColors.gradient(GEMINI_GRADIENT, clamp01((lx + 1) / 2)), 0xFFFFFF, 0.2));
+                    return new Surface(e, 0.5, 40, new double[]{e[0] * pulse, e[1] * pulse, e[2] * pulse}, 0);
+                }
                 return Surface.of(0x0D0D1A, 0.9, 90);
             }
             default -> {
-                boolean text = textAt("DEV", (u - 0.03) / 0.56, (v - 0.15) / 0.7);
+                boolean text = textAt("DEV", (u - 0.41) / 0.56, (v - 0.15) / 0.7);             // heart first, then DEV
                 double beat = 1 + 0.25 * Math.max(0, Math.sin(t * 7));
-                boolean heart = heartAt((u - 0.62) / 0.34 * beat - (beat - 1) / 2, (v - 0.12) / 0.76 * beat - (beat - 1) / 2);
+                boolean heart = heartAt((u - 0.03) / 0.34 * beat - (beat - 1) / 2, (v - 0.12) / 0.76 * beat - (beat - 1) / 2);
                 if (heart) {
                     double[] e = linColor(0xE91E63);
                     return new Surface(e, 0.5, 40, new double[]{e[0] * 0.6, e[1] * 0.6, e[2] * 0.6}, 0);
@@ -935,14 +975,14 @@ final class CoffeeFactory3D {
             if (t > POUR[2] + 0.3 && t < CLAW_DOWN) floatingHearts(t);
             if (s.heartScale > 0.01) {
                 double[] h = s.project(new V(END_X, 0.75, 0));
-                if (h != null) glow(h[0], h[1], 18 * s.heartScale, 0xFF4D7E, 0.4);
+                if (h != null) glow(h[0], h[1], 18 * K * s.heartScale, 0xFF4D7E, 0.4);
             }
             if (t > ARRIVE[1] - 1.6 && t < LEAVE[1] + 1.2) {                   // Gemini sparkle twinkles at the nozzle
                 double[] g = s.project(new V(STATIONS[1], 3.72, 0.3));
                 double k = 0.75 + 0.25 * Math.sin(t * 5);
                 if (g != null) {
-                    glow(g[0], g[1], 5, 0x9177C7, 0.45 * k);
-                    sparkle(g[0], g[1], 5 * k, 0x7B9CFF, 1);
+                    glow(g[0], g[1], 5 * K, 0x9177C7, 0.45 * k);
+                    sparkle(g[0], g[1], 5 * K * k, 0x7B9CFF, 1);
                 }
             }
             motes(t);
@@ -957,7 +997,7 @@ final class CoffeeFactory3D {
                     double life = ((t * 0.6 + i / 26.0 + w * 0.33) % 1);
                     V p = s.fromCup(new V(-0.35 + w * 0.35 + 0.18 * Math.sin(life * 9 + w + t * 2), 2.2 + life * 2.4, 0.2));
                     double[] sc = s.project(p);
-                    if (sc != null) glow(sc[0], sc[1], 2.2 + life * 3, 0xE8EAED, 0.05 * k * Math.sin(Math.PI * life));
+                    if (sc != null) glow(sc[0], sc[1], (2.2 + life * 3) * K, 0xE8EAED, 0.05 * k * Math.sin(Math.PI * life));
                 }
             }
         }
@@ -967,13 +1007,13 @@ final class CoffeeFactory3D {
             double k = smoothstep(POUR[1] - 0.2, POUR[1] + 0.4, t) * (1 - smoothstep(DONE[1], LEAVE[1] + 0.3, t));
             double[] a = s.project(new V(STATIONS[1], 3.8, 0)), b = s.project(s.fromCup(new V(0, 2.6, 0)));
             if (a == null || b == null || k <= 0) return;
-            double cx = (a[0] + b[0]) / 2, cy = (a[1] + b[1]) / 2, ry = Math.abs(b[1] - a[1]) / 2 + 10, rx = 26;
-            for (int y = (int) (cy - ry - 6); y <= cy + ry + 6; y++) {
-                for (int x = (int) (cx - rx - 6); x <= cx + rx + 6; x++) {
+            double cx = (a[0] + b[0]) / 2, cy = (a[1] + b[1]) / 2, ry = Math.abs(b[1] - a[1]) / 2 + 10 * K, rx = 26 * K;
+            for (int y = (int) (cy - ry - 6 * K); y <= cy + ry + 6 * K; y++) {
+                for (int x = (int) (cx - rx - 6 * K); x <= cx + rx + 6 * K; x++) {
                     double ex = (x - cx) / rx, ey = (y - cy) / ry;
                     double m = Math.exp(-(ex * ex + ey * ey) * 2.2);
                     if (m < 0.02) continue;
-                    double n = Noise.smoke(x * 0.045, y * 0.045 - t * 0.6, t * 0.5 + 11);
+                    double n = Noise.smoke(x * 0.045 / K, y * 0.045 / K - t * 0.6, t * 0.5 + 11);
                     add(x, y, GoogleColors.cyclic(RAINBOW, n * 1.3 + t * 0.15), k * m * smoothstep(-0.2, 0.55, n) * 0.75);
                 }
             }
@@ -983,7 +1023,7 @@ final class CoffeeFactory3D {
                 double[] sc = s.project(p);
                 if (sc == null) continue;
                 double tw = k * Math.max(0, Math.sin(t * 9 + i * 1.7));
-                sparkle(sc[0], sc[1], 3.5 * tw, GoogleColors.gradient(GEMINI_GRADIENT, i / 8.0), tw);
+                sparkle(sc[0], sc[1], 3.5 * K * tw, GoogleColors.gradient(GEMINI_GRADIENT, i / 8.0), tw);
             }
         }
 
@@ -994,7 +1034,7 @@ final class CoffeeFactory3D {
                 add((int) Math.round(cx + d), (int) Math.round(cy), color, 255 / 255.0 * a * f * 0.9);
                 add((int) Math.round(cx), (int) Math.round(cy + d), color, a * f * 0.9);
             }
-            add((int) Math.round(cx), (int) Math.round(cy), 0xFFFFFF, a);
+            if (K > 1) glow(cx, cy, 0.8 * K, 0xFFFFFF, a); else add((int) Math.round(cx), (int) Math.round(cy), 0xFFFFFF, a);
         }
 
         /** Sprinkles falling from the DEV nozzle and sticking to the swirl (they follow its jiggle). */
@@ -1016,8 +1056,10 @@ final class CoffeeFactory3D {
                 int col = i % 3 == 0 ? 0xFFFFFF : (i % 3 == 1 ? 0xFF80AB : 0xFF4081);
                 int x = (int) Math.round(sc[0]), y = (int) Math.round(sc[1]);
                 boolean vertical = i % 2 == 0;
-                for (int k = 0; k < 3; k++) {
-                    int xx = vertical ? x : x + k, yy = vertical ? y + k : y;
+                int len = (int) Math.round(3 * K), thick = (int) Math.max(1, Math.round(K * 0.8));
+                for (int k = 0; k < len * thick; k++) {
+                    int along = k % len, across = k / len;
+                    int xx = vertical ? x + across : x + along, yy = vertical ? y + along : y + across;
                     int idx = (yy * W + xx) * 3;
                     if (xx < 0 || yy < 0 || xx >= W || yy >= W) continue;
                     rgb[idx] = GoogleColors.r(col); rgb[idx + 1] = GoogleColors.g(col); rgb[idx + 2] = GoogleColors.b(col);
@@ -1034,7 +1076,7 @@ final class CoffeeFactory3D {
                 double[] sc = s.project(p);
                 if (sc == null) continue;
                 double a = Math.sin(Math.PI * age / 2.2);
-                double size = 3.2 + i % 2;
+                double size = (3.2 + i % 2) * K;
                 for (int y = (int) (sc[1] - size); y <= sc[1] + size; y++) {
                     for (int x = (int) (sc[0] - size); x <= sc[0] + size; x++) {
                         if (heartAt((x - sc[0]) / (2 * size) + 0.5, (y - sc[1]) / (2 * size) + 0.5)) {
@@ -1049,10 +1091,10 @@ final class CoffeeFactory3D {
         /** Dust motes drifting through the warm key light, for atmosphere. */
         void motes(double t) {
             for (int i = 0; i < 14; i++) {
-                double x = ((i * 37.7 + t * (4 + i % 3)) % (W + 20)) - 10;
-                double y = ((i * 53.3 + Math.sin(t * 0.7 + i) * 6) % W);
+                double x = ((i * 37.7 * K + t * (4 + i % 3) * K) % (W + 20 * K)) - 10 * K;
+                double y = ((i * 53.3 * K + Math.sin(t * 0.7 + i) * 6 * K) % W);
                 double a = 0.25 * Math.max(0, Math.sin(t * 1.3 + i * 2.1));
-                add((int) x, (int) y, 0xFFE0B2, a);
+                if (K > 1) glow(x, y, 0.6 * K, 0xFFE0B2, a); else add((int) x, (int) y, 0xFFE0B2, a);
             }
         }
     }
